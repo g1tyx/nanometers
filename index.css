@@ -1,0 +1,66 @@
+* {
+  box-sizing: border-box;
+}
+
+#gameContainer {
+  display: grid;
+  width: 512px;
+  height: 512px;
+  grid-template-columns: repeat(16, 32px);
+  grid-template-rows: repeat(16, 32px);
+  background-color: yellow;
+}
+
+.particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 20pt;
+  user-select: none;
+}
+
+.gridCellContainer {
+  display: grid;
+  grid-template: 8px 1fr 8px / 8px 1fr 8px;
+  outline: none; /* to avoid focus highlight */
+}
+
+.leftArrow {
+  display: none;
+  grid-column: 1;
+  grid-row: 1 / 4;
+  border-top: 16px solid transparent;
+  border-bottom: 16px solid transparent;
+  border-right: 8px solid black;
+}
+
+.rightArrow {
+  display: none;
+  grid-column: 3;
+  grid-row: 1 / 4;
+  border-top: 16px solid transparent;
+  border-bottom: 16px solid transparent;
+  border-left: 8px solid black;
+}
+
+.upArrow {
+  display: none;
+  grid-column: 1 / 4;
+  grid-row: 1;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 8px solid black;
+}
+
+.downArrow {
+  display: none;
+  grid-column: 1 / 4;
+  grid-row: 3;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 8px solid black;
+}
+
+.cellSelected {
+  box-shadow: inset 0px 0px 5px 0px black;
+}
