@@ -14,6 +14,7 @@ TODO:
   give cells a strength and power and owned
   make power transfer between owned cells
   make power attack strength of unowned cells
+  unselect all cells if you click outside the grid
   player attack power is function of attack strength of the attacking cell
   use won exp to improve 
     attack power, 
@@ -26,6 +27,12 @@ TODO:
   cells transfer in nanites each tick
   randomly collect letters in ?some word? (originally NEKOGAMES) to unlock
     a secret room...that does what?
+  need multiple maps
+  all cells get upgraded together
+    act
+    atk
+    def
+  attacking works similar to risk
 
   costs:
   1: 10 => +1
@@ -40,7 +47,6 @@ TODO:
   25: 1500 => +4
   26: 1750 => +4
   
-  unselect all cells if you click outside the grid
 
 
 parameters english help text:
@@ -103,6 +109,16 @@ class App {
     localStorage.removeItem('nanometers');
     window.location.reload();
   }
+
+colorShiftMath(initialColor, multi, leftOverMulti) {
+    //Hue is 0-360, 0 is red, 120 is green, 240 is blue. Sat is 0-100, 0=greyscale. Light is 0-100, 25=half black
+    let hue = initialColor - (multi-1)*30; //- (leftOverMulti)*9;
+    let sat = 10+Math.pow(multi, .8) * 2; //+ (leftOverMulti)*3
+    sat = sat > 100 ? 100 : sat; //multi^.9 * 6 reaches at 23
+    let light = 50;
+    return "hsl("+hue+", "+sat+"%, "+light+"%)";
+}
+
   initGrid() {
     const container = document.getElementById('gridContainer');
 
@@ -113,7 +129,8 @@ class App {
         d.id = id;
         this.UI[id] = d;
         d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
-        d.style.backgroundColor = `hsl(${360 * Math.random()}, 50%, 50%)`;
+        //d.style.backgroundColor = `hsl(${360 * Math.random()}, 50%, 50%)`;
+        d.style.backgroundColor = this.colorShiftMath(360, Math.random()*(x+y));
 
         d.classList.add('gridCellContainer');
         d.setAttribute('tabindex', '-1');
