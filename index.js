@@ -1,7 +1,16 @@
 'use strict';
 
 /*
+game links:
+https://www.andyslife.org/games/game.php?file=300&title=Parameters
+http://nekogames.jp/g2.html?gid=PRM
+http://stopsign.github.io/Nanospread/
+
+some details here:
+https://jayisgames.com/review/parameters.php
+
 TODO:
+  Nanospread is released under MIT license
   give cells a strength and power and owned
   make power transfer between owned cells
   make power attack strength of unowned cells
@@ -10,10 +19,42 @@ TODO:
     attack power, 
     transfer speed,
     generator speed
-  
+  locked cells should display their strength, light gray on green 
+  unlocked cells display strength and level
+  cells create their own nanites each tick
+  cells transfer out nanites each tick
+  cells transfer in nanites each tick
+  randomly collect letters in ?some word? (originally NEKOGAMES) to unlock
+    a secret room...that does what?
+
+  costs:
+  1: 10 => +1
+  2: 20 => +1
+  ...
+  9: 90 => +1
+  10: 150 => +2
+  11: 200 => +2
+  12: 250 => +2
+  ...
+  24: 850 => +2
+  25: 1500 => +4
+  26: 1750 => +4
   
   unselect all cells if you click outside the grid
 
+
+parameters english help text:
+How to play
+- Complete the game by defeating every enemy
+-Money ($) and EXP a re collected by mousing over them.
+About Item
+- Keys can be earned by defeating enemies, or can be purchased in the shop.
+- You can buy wewapons and armor for ATK and DEF bonuses, up to 9 of each individual type.
+About parameter
+  RCV determines how fast you recover life, when not fighting enemies, and activity points
+  (ACT), when not on a mission.
+  ATK determines the strength of your attacks.
+  DEF determines how much damage you take from enemies.
 
 */
 
@@ -63,7 +104,7 @@ class App {
     window.location.reload();
   }
   initGrid() {
-    const container = document.getElementById('gameContainer');
+    const container = document.getElementById('gridContainer');
 
     for (let x = 0; x < 16; x++) {
       for (let y = 0; y < 16; y++) {
