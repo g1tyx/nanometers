@@ -126,27 +126,40 @@ colorShiftMath(initialColor, multi, leftOverMulti) {
       for (let y = 0; y < 16; y++) {
         const d = document.createElement('div');
         const id = `gridCellContainer${x}_${y}`;
+        if (this.UI[id]) {
+          this.UI[id].remove();
+        }
+
         d.id = id;
         this.UI[id] = d;
         d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
         //d.style.backgroundColor = `hsl(${360 * Math.random()}, 50%, 50%)`;
         d.style.backgroundColor = this.colorShiftMath(360, Math.random()*(x+y));
+        const colors = {
+          '.': 'transparent',
+          B: 'red'
+        };
+        const type = levelData[0].grid[y][x];
+        const color = colors[type];
+        d.style.backgroundColor = color;
 
-        d.classList.add('gridCellContainer');
-        d.setAttribute('tabindex', '-1');
+        if (type != '.') {
+          d.classList.add('gridCellContainer');
+          d.setAttribute('tabindex', '-1');
 
-        this.arrowDirs.forEach( dir => {
-          const arrow = document.createElement('div');
-          arrow.id = `${d.id}_${dir}`;
-          this.UI[arrow.id] = arrow;
-          arrow.classList.add(`${dir}Arrow`);
-          d.append(arrow);
-        });
+          this.arrowDirs.forEach( dir => {
+            const arrow = document.createElement('div');
+            arrow.id = `${d.id}_${dir}`;
+            this.UI[arrow.id] = arrow;
+            arrow.classList.add(`${dir}Arrow`);
+            d.append(arrow);
+          });
+          d.onclick = () => this.selectCell(x, y);
+          d.onkeydown = (evt) => this.keydownCell(evt, x, y);
+          //d.onclick = (evt) => this.createParticle(evt);
+        }
 
         container.append(d);
-        d.onclick = () => this.selectCell(x, y);
-        d.onkeydown = (evt) => this.keydownCell(evt, x, y);
-        //d.onclick = (evt) => this.createParticle(evt);
 
       }
     }

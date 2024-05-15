@@ -31,7 +31,7 @@ body {
   height: 520px;
   grid-template-columns: repeat(16, 32px);
   grid-template-rows: repeat(16, 32px);
-  background-color: yellow;
+  background-color: hsl(221, 24%, 69%);
 }
 
 .particle {
