@@ -74,9 +74,10 @@ class App {
     this.arrowDirs = ['left', 'right', 'up', 'down'];
     this.selectedCell = undefined;
     this.UI = {};
-    this.initGrid();
+    this.initGrid(0);
 
     setInterval(() => this.update(), 1000/60);
+    setInterval(() => this.saveToStorage(), 30 * 1000);
     this.draw();
   }
 
@@ -85,6 +86,8 @@ class App {
     const rawState = localStorage.getItem('nanometers');
 
     this.state = {
+      savedTime: 0,
+      lastTime: (new Date()).getTime()
     };
 
     if (rawState !== null) {
@@ -110,20 +113,25 @@ class App {
     window.location.reload();
   }
 
-colorShiftMath(initialColor, multi, leftOverMulti) {
-    //Hue is 0-360, 0 is red, 120 is green, 240 is blue. Sat is 0-100, 0=greyscale. Light is 0-100, 25=half black
-    let hue = initialColor - (multi-1)*30; //- (leftOverMulti)*9;
-    let sat = 10+Math.pow(multi, .8) * 2; //+ (leftOverMulti)*3
-    sat = sat > 100 ? 100 : sat; //multi^.9 * 6 reaches at 23
-    let light = 50;
-    return "hsl("+hue+", "+sat+"%, "+light+"%)";
-}
 
-  initGrid() {
+  //Copied from Nanospread
+  colorShiftMath(initialColor, multi, leftOverMulti) {
+      //Hue is 0-360, 0 is red, 120 is green, 240 is blue. Sat is 0-100, 0=greyscale. Light is 0-100, 25=half black
+      let hue = initialColor - (multi-1)*30; //- (leftOverMulti)*9;
+      let sat = 10+Math.pow(multi, .8) * 2; //+ (leftOverMulti)*3
+      sat = sat > 100 ? 100 : sat; //multi^.9 * 6 reaches at 23
+      let light = 50;
+      return "hsl("+hue+", "+sat+"%, "+light+"%)";
+  }
+
+  initGrid(level) {
     const container = document.getElementById('gridContainer');
 
-    for (let x = 0; x < 16; x++) {
-      for (let y = 0; y < 16; y++) {
+    this.state.grid = new Array(16);
+    for (let y = 0; y < 16; y++) {
+      const gridRow = new Array(16);
+      this.state.grid[y] = gridRow;
+      for (let x = 0; x < 16; x++) {
         const d = document.createElement('div');
         const id = `gridCellContainer${x}_${y}`;
         if (this.UI[id]) {
@@ -131,17 +139,17 @@ colorShiftMath(initialColor, multi, leftOverMulti) {
         }
 
         d.id = id;
+
         this.UI[id] = d;
         d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
-        //d.style.backgroundColor = `hsl(${360 * Math.random()}, 50%, 50%)`;
-        d.style.backgroundColor = this.colorShiftMath(360, Math.random()*(x+y));
+        //d.style.backgroundColor = this.colorShiftMath(360, Math.random()*(x+y));
         const colors = {
           '.': 'transparent',
-          B: 'red'
+          '#': 'green'
         };
-        const type = levelData[0].grid[y][x];
+        const type = levelData[level].grid[y][x];
         const color = colors[type];
-        d.style.backgroundColor = color;
+        //d.style.backgroundColor = color;
 
         if (type != '.') {
           d.classList.add('gridCellContainer');
@@ -157,22 +165,138 @@ colorShiftMath(initialColor, multi, leftOverMulti) {
           d.onclick = () => this.selectCell(x, y);
           d.onkeydown = (evt) => this.keydownCell(evt, x, y);
           //d.onclick = (evt) => this.createParticle(evt);
+          
+          const displayDiv = document.createElement('div');
+          const dName = `gridCellDisplay${x}_${y}`;
+          displayDiv.id = dName;
+          displayDiv.classList.add('gridDisplay');
+          this.UI[dName] = displayDiv;
+
+          d.appendChild(displayDiv);
+
+
         }
 
         container.append(d);
 
+
+        const nanites = type === '#' ? 1 : 0;
+        const power = type === '#' ? 0 : 1;
+        gridRow[x] = {
+          type,
+          nanites,
+          power,
+          dir: '',
+        };
+
+      }
+    }
+
+  }
+
+  getNeighbor(x, y, dir) {
+    switch (dir) {
+      case 'up': {
+        const ny = y - 1;
+        if (ny < 0) {return undefined;}
+        return this.state.grid[ny][x];
+      }
+      case 'down': {
+        const ny = y + 1;
+        if (ny >= 16) {return undefined;}
+        return this.state.grid[ny][x];
+      }
+      case 'left': {
+        const nx = x - 1;
+        if (nx < 0) {return undefined;}
+        return this.state.grid[y][nx];
+      }
+      case 'right': {
+        const nx = x + 1;
+        if (nx >= 16) {return undefined;}
+        return this.state.grid[y][nx];
+      }
+    }
+    return undefined;
+  }
+
+  tick() {
+    const nanitesRate = 1;
+    const transferRate = 0.01;
+
+    for (let y = 0; y < 16; y++) {
+      const gridRow = this.state.grid[y];
+      for (let x = 0; x < 16; x++) {
+        const cell = gridRow[x];
+        if (cell.type === '#') {
+          cell.nanites += nanitesRate;
+          if (cell.dir !== '') {
+            const neighbor = this.getNeighbor(x, y, cell.dir);
+            if (neighbor !== undefined && neighbor.type === '#') {
+              const transferCount = cell.nanites * transferRate;
+              cell.nanites -= transferCount;
+              neighbor.nanites += transferCount;
+            }
+          }
+        }
       }
     }
   }
 
   update() {
     const t = (new Date()).getTime();
+    let deltaT = t - this.state.lastTime;
+    const tickPeriod = 1000;
+    const frameLimit = 1000 / 60;
 
+    while (deltaT > tickPeriod) {
+      this.tick();
+      deltaT -= tickPeriod;
+      const frameTime = (new Date()).getTime() - t;
+      if (frameTime >= frameLimit) {
+        break;
+      }
+    }
+
+
+    this.state.lastTime = t - deltaT;
   }
-
+  
+  getUnlockedColor(n) {
+    /*
+    const OOM = Math.log10(n);
+    const h = (OOM * 30) % 360;
+    const s = 30 + (OOM % 1) * 70;
+    const l = 50;
+    */
+    const OOM = Math.log10(n);
+    //h in [120,315]
+    //s in [30, 100]
+    //h move first
+    const h = 120 + (OOM * 30) % (315 - 120);
+    const s = 30 + Math.floor((OOM * 30) / (315 - 120)) * 5;
+    const l = 50;
+    return `hsl(${h},${s}%,${l}%)`;
+  }
+  
   draw() {
-    let a = 1;
+    for (let y = 0; y < 16; y++) {
+      const gridRow = this.state.grid[y];
+      for (let x = 0; x < 16; x++) {
+        const cell = gridRow[x];
+        if (cell.type !== '.') {
+          const eCon = this.UI[`gridCellContainer${x}_${y}`];
+          const ni = (x + y * 16 + 1);
+          const nanites = cell.nanites;
+          //eCon.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+          const eDisp = this.UI[`gridCellDisplay${x}_${y}`];
+          eDisp.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+          
+          //eDisp.innerText = cell.nanites.toExponential(1);
 
+        }
+      }
+    }
     window.requestAnimationFrame(() => this.draw());
   }
 
@@ -247,10 +371,11 @@ colorShiftMath(initialColor, multi, leftOverMulti) {
     };
   }
 
-  setCellArrow(x, y, targetDir) {
+  setCellDir(x, y, targetDir) {
     this.arrowDirs.forEach( dir => {
       this.UI[`gridCellContainer${x}_${y}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
     });
+    this.state.grid[y][x].dir = targetDir;
   }
 
   selectCell(x, y) {
@@ -280,7 +405,7 @@ colorShiftMath(initialColor, multi, leftOverMulti) {
     const action = keyMap[key];
     if (action === undefined) {return;}
     evt.preventDefault();
-    this.setCellArrow(x, y, action);
+    this.setCellDir(x, y, action);
   }
 }
 

@@ -17,7 +17,7 @@ body {
 
 #gameContainer {
   display: grid;
-  grid-template-columns: 520px 1fr;
+  grid-template-columns: 817px 1fr;
   grid-column-gap: 5px;
 }
 
@@ -27,11 +27,12 @@ body {
 
 #gridContainer {
   display: grid;
-  width: 520px;
-  height: 520px;
-  grid-template-columns: repeat(16, 32px);
-  grid-template-rows: repeat(16, 32px);
+  width: 817px;
+  height: 817px;
+  grid-template-columns: repeat(10, 80px);
+  grid-template-rows: repeat(10, 80px);
   background-color: hsl(221, 24%, 69%);
+  grid-gap: 1px;
 }
 
 .particle {
@@ -45,45 +46,50 @@ body {
 .gridCellContainer {
   display: grid;
   grid-template: 8px 1fr 8px / 8px 1fr 8px;
-  outline: none; /* to avoid focus highlight */
 }
 
 .leftArrow {
   display: none;
   grid-column: 1;
-  grid-row: 1 / 4;
-  border-top: 16px solid transparent;
-  border-bottom: 16px solid transparent;
+  grid-row: 2 / 3;
+  border-top: 32px solid transparent;
+  border-bottom: 32px solid transparent;
   border-right: 8px solid black;
 }
 
 .rightArrow {
   display: none;
   grid-column: 3;
-  grid-row: 1 / 4;
-  border-top: 16px solid transparent;
-  border-bottom: 16px solid transparent;
+  grid-row: 2 / 3;
+  border-top: 32px solid transparent;
+  border-bottom: 32px solid transparent;
   border-left: 8px solid black;
 }
 
 .upArrow {
   display: none;
-  grid-column: 1 / 4;
+  grid-column: 2 / 3;
   grid-row: 1;
-  border-left: 16px solid transparent;
-  border-right: 16px solid transparent;
+  border-left: 32px solid transparent;
+  border-right: 32px solid transparent;
   border-bottom: 8px solid black;
 }
 
 .downArrow {
   display: none;
-  grid-column: 1 / 4;
+  grid-column: 2 / 3;
   grid-row: 3;
-  border-left: 16px solid transparent;
-  border-right: 16px solid transparent;
+  border-left: 32px solid transparent;
+  border-right: 32px solid transparent;
   border-top: 8px solid black;
 }
 
 .cellSelected {
   box-shadow: inset 0px 0px 5px 0px black;
+}
+
+.gridDisplay {
+  grid-area: 2 / 2 / 3 / 3;
+  outline: 1px solid black;
+  box-shadow: 2px 2px 4px black;
 }
