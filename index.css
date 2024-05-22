@@ -46,6 +46,7 @@ body {
 .gridCellContainer {
   display: grid;
   grid-template: 8px 1fr 8px / 8px 1fr 8px;
+  outline: none; /* prevent focus highlight */
 }
 
 .leftArrow {
