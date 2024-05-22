@@ -47,6 +47,7 @@ body {
   display: grid;
   grid-template: 8px 1fr 8px / 8px 1fr 8px;
   outline: none; /* prevent focus highlight */
+  user-select: none;
 }
 
 .leftArrow {
@@ -89,8 +90,18 @@ body {
   box-shadow: inset 0px 0px 5px 0px black;
 }
 
-.gridDisplay {
+.gridBackground {
   grid-area: 2 / 2 / 3 / 3;
   outline: 1px solid black;
   box-shadow: 2px 2px 4px black;
+}
+
+.gridProgress {
+  grid-area: 2/2/3/3;
+  background-color: yellow;
+}
+
+.gridForeground {
+  grid-area: 2/2/3/3;
+  background-color: transparent;
 }

@@ -142,7 +142,7 @@ class App {
         }
 
         d.id = id;
-        d.onclick = () => this.selectCell(x, y);
+        d.onclick = () => this.clickCell(x, y);
 
         this.UI[id] = d;
         d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
@@ -175,14 +175,32 @@ class App {
           //d.onclick = (evt) => this.createParticle(evt);
           
           const displayDiv = document.createElement('div');
-          const dName = `gridCellDisplay${x}_${y}`;
+          const dName = `gridCellBackground${x}_${y}`;
           displayDiv.id = dName;
-          displayDiv.classList.add('gridDisplay');
+          displayDiv.classList.add('gridBackground');
           this.UI[dName] = displayDiv;
 
           d.appendChild(displayDiv);
+        }
 
+        if (type != '.' && type != '#') {
+          const progressDiv = document.createElement('div');
+          const pName = `gridCellProgress${x}_${y}`;
+          progressDiv.id = pName;
+          progressDiv.classList.add('gridProgress');
+          this.UI[pName] = progressDiv;
 
+          d.appendChild(progressDiv);
+        }
+
+        if (type !== '.') {
+          const fgDiv = document.createElement('div');
+          const fgName = `gridCellForeground${x}_${y}`;
+          fgDiv.id = fgName;
+          fgDiv.classList.add('gridForeground');
+          this.UI[fgName] = fgDiv;
+
+          d.appendChild(fgDiv);
         }
 
         container.append(d);
@@ -289,6 +307,11 @@ class App {
     return `hsl(${h},${s}%,${l}%)`;
   }
   
+  setGridProgress(x, y, f) {
+    const eProgress = this.UI[`gridCellProgress${x}_${y}`];
+    eProgress.style.width = `${f * 100}%`;
+  }
+
   draw() {
     const colors = {
       '.': 'transparent',
@@ -305,14 +328,15 @@ class App {
           const ni = (x + y * 16 + 1);
           const nanites = cell.nanites;
           //eCon.style.backgroundColor = this.getUnlockedColor(cell.nanites);
-          const eDisp = this.UI[`gridCellDisplay${x}_${y}`];
+          const eBG = this.UI[`gridCellBackground${x}_${y}`];
           if (cell.locked) {
-            eDisp.style.backgroundColor = colors[cell.type];
+            eBG.style.backgroundColor = colors[cell.type];
           } else {
-            eDisp.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+            eBG.style.backgroundColor = this.getUnlockedColor(cell.nanites);
           }
           
-          eDisp.innerText = cell.nanites.toExponential(1);
+          const eFG = this.UI[`gridCellForeground${x}_${y}`];
+          eFG.innerText = cell.nanites.toExponential(1);
 
         }
       }
@@ -396,6 +420,25 @@ class App {
       this.UI[`gridCellContainer${x}_${y}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
     });
     this.state.grid[y][x].dir = targetDir;
+  }
+
+  clickCell(x, y) {
+    this.selectCell(x, y);
+    const cell = this.state.grid[y][x];
+    switch (cell.type) {
+      case '#': {
+        break;
+      }
+      case 'r': {
+        if (cell.locked) { return; }
+        break;
+      }
+      case 'e': {
+        if (cell.locked) { return; }
+        break;
+      }
+    }
+
   }
 
   selectCell(x, y) {
