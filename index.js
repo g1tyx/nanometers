@@ -11,11 +11,14 @@ https://jayisgames.com/review/parameters.php
 
 TODO:
   Nanospread is released under MIT license
+  some cells are just resources and don't fight back
+  some cells do fight back and regen health
   give cells a strength and power and owned
   make power transfer between owned cells
   make power attack strength of unowned cells
   unselect all cells if you click outside the grid
   player attack power is function of attack strength of the attacking cell
+  player can set keybinds
   use won exp to improve 
     attack power, 
     transfer speed,
@@ -139,17 +142,23 @@ class App {
         }
 
         d.id = id;
+        d.onclick = () => this.selectCell(x, y);
 
         this.UI[id] = d;
         d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
-        //d.style.backgroundColor = this.colorShiftMath(360, Math.random()*(x+y));
-        const colors = {
-          '.': 'transparent',
-          '#': 'green'
-        };
-        const type = levelData[level].grid[y][x];
-        const color = colors[type];
-        //d.style.backgroundColor = color;
+        const symbol = levelData[level].grid[y][x];
+        let type;
+        if (symbol === '.') {
+          type = '.';
+        } else if (symbol === '#') {
+          type = '#';
+        } else if (symbol.toLowerCase() === symbol) {
+          type = 'r';
+        } else if (symbol.toUpperCase() === symbol) {
+          type = 'e';
+        } else {
+          throw `UNKNOWN LEVEL DATA SYMBOL ${symbol} ${x} ${y}`;
+        }
 
         if (type != '.') {
           d.classList.add('gridCellContainer');
@@ -162,7 +171,6 @@ class App {
             arrow.classList.add(`${dir}Arrow`);
             d.append(arrow);
           });
-          d.onclick = () => this.selectCell(x, y);
           d.onkeydown = (evt) => this.keydownCell(evt, x, y);
           //d.onclick = (evt) => this.createParticle(evt);
           
@@ -182,11 +190,13 @@ class App {
 
         const nanites = type === '#' ? 1 : 0;
         const power = type === '#' ? 0 : 1;
+        const locked = type === '#' ? false : true;
         gridRow[x] = {
           type,
           nanites,
           power,
           dir: '',
+          locked
         };
 
       }
@@ -280,6 +290,12 @@ class App {
   }
   
   draw() {
+    const colors = {
+      '.': 'transparent',
+      '#': 'green',
+      'r': 'blue',
+      'e': 'yellow'
+    };
     for (let y = 0; y < 16; y++) {
       const gridRow = this.state.grid[y];
       for (let x = 0; x < 16; x++) {
@@ -290,9 +306,13 @@ class App {
           const nanites = cell.nanites;
           //eCon.style.backgroundColor = this.getUnlockedColor(cell.nanites);
           const eDisp = this.UI[`gridCellDisplay${x}_${y}`];
-          eDisp.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+          if (cell.locked) {
+            eDisp.style.backgroundColor = colors[cell.type];
+          } else {
+            eDisp.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+          }
           
-          //eDisp.innerText = cell.nanites.toExponential(1);
+          eDisp.innerText = cell.nanites.toExponential(1);
 
         }
       }
@@ -385,13 +405,14 @@ class App {
         curSelectedElement.item(i).classList.remove('cellSelected');
       }
     }
-    this.UI[`gridCellContainer${x}_${y}`].classList.add('cellSelected');
-    this.selectedCell = {x, y, e: this.UI[`gridCellContainer${x}_${y}`]};
+    if (this.state.grid[y][x].type !== '.') {
+      this.UI[`gridCellContainer${x}_${y}`].classList.add('cellSelected');
+      this.selectedCell = {x, y, e: this.UI[`gridCellContainer${x}_${y}`]};
+    }
   }
 
   keydownCell(evt, x, y) {
     const key = evt.key;
-    console.log('press', key);
     const keyMap = {
       w: 'up',
       a: 'left',
