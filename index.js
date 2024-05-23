@@ -209,6 +209,8 @@ class App {
         const nanites = type === '#' ? 1 : 0;
         const power = type === '#' ? 0 : 1;
         const locked = type === '#' ? false : true;
+
+        //Everything that goes into this object gets saved to localStorage
         gridRow[x] = {
           type,
           nanites,
@@ -248,6 +250,32 @@ class App {
     return undefined;
   }
 
+  getNeighborCoord(x, y, dir) {
+    switch (dir) {
+      case 'up': {
+        const ny = y - 1;
+        if (ny < 0) {return undefined;}
+        return {x, y: ny};
+      }
+      case 'down': {
+        const ny = y + 1;
+        if (ny >= 16) {return undefined;}
+        return {x, y: ny};
+      }
+      case 'left': {
+        const nx = x - 1;
+        if (nx < 0) {return undefined;}
+        return {x: nx, y};
+      }
+      case 'right': {
+        const nx = x + 1;
+        if (nx >= 16) {return undefined;}
+        return {x: nx, y};
+      }
+    }
+    return undefined;
+  }
+
   tick() {
     const nanitesRate = 1;
     const transferRate = 0.01;
@@ -260,10 +288,35 @@ class App {
           cell.nanites += nanitesRate;
           if (cell.dir !== '') {
             const neighbor = this.getNeighbor(x, y, cell.dir);
-            if (neighbor !== undefined && neighbor.type === '#') {
-              const transferCount = cell.nanites * transferRate;
-              cell.nanites -= transferCount;
-              neighbor.nanites += transferCount;
+            if (neighbor === undefined) {continue;}
+            switch (neighbor.type) {
+              case '#': {
+                const transferCount = cell.nanites * transferRate;
+                cell.nanites -= transferCount;
+                neighbor.nanites += transferCount;
+                break;
+              }
+              case 'r': {
+                const transferCount = cell.nanites * transferRate;
+                cell.nanites -= transferCount;
+                neighbor.nanites += transferCount;
+
+                if (neighbor.locked && neighbor.nanites >= neighbor.power) {
+                  neighbor.locked = false;
+                  neighbor.nanites -= neighbor.power;
+                  neighbor.type = '#';
+                  const nc = this.getNeighborCoord(x, y, cell.dir);
+                  this.setGridProgress(nc.x, nc.y, 0);
+                }
+
+                break;
+              }
+              case 'e': {
+                break;
+              }
+              case '.': {
+                break;
+              }
             }
           }
         }
@@ -323,20 +376,34 @@ class App {
       const gridRow = this.state.grid[y];
       for (let x = 0; x < 16; x++) {
         const cell = gridRow[x];
-        if (cell.type !== '.') {
-          const eCon = this.UI[`gridCellContainer${x}_${y}`];
-          const ni = (x + y * 16 + 1);
-          const nanites = cell.nanites;
-          //eCon.style.backgroundColor = this.getUnlockedColor(cell.nanites);
-          const eBG = this.UI[`gridCellBackground${x}_${y}`];
-          if (cell.locked) {
-            eBG.style.backgroundColor = colors[cell.type];
-          } else {
+        if (cell.type === '.') {continue;}
+        const eBG = this.UI[`gridCellBackground${x}_${y}`];
+        const eFG = this.UI[`gridCellForeground${x}_${y}`];
+        switch (cell.type) {
+          case '#': {
             eBG.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+            eFG.innerText = cell.nanites.toExponential(1);
+
+            break;
           }
-          
-          const eFG = this.UI[`gridCellForeground${x}_${y}`];
-          eFG.innerText = cell.nanites.toExponential(1);
+          case 'r': {
+            if (cell.locked) {
+              eBG.style.backgroundColor = colors[cell.type];
+              const f = Math.max(0, 1 - cell.nanites / cell.power);
+              this.setGridProgress(x, y, f);
+            } else {
+              eBG.style.backgroundColor = this.getUnlockedColor(cell.nanites);
+            }
+            
+            eFG.innerText = cell.power.toExponential(1);
+            break;
+          }
+          case 'e': {
+            break;
+          }
+        }
+
+        if (cell.type !== '.') {
 
         }
       }
