@@ -172,7 +172,6 @@ class App {
             d.append(arrow);
           });
           d.onkeydown = (evt) => this.keydownCell(evt, x, y);
-          //d.onclick = (evt) => this.createParticle(evt);
           
           const displayDiv = document.createElement('div');
           const dName = `gridCellBackground${x}_${y}`;
@@ -208,7 +207,7 @@ class App {
 
         const nanites = type === '#' ? 1 : 0;
         const power = type === '#' ? 0 : 1;
-        const locked = type === '#' ? false : true;
+        const locked = false;
 
         //Everything that goes into this object gets saved to localStorage
         gridRow[x] = {
@@ -297,18 +296,6 @@ class App {
                 break;
               }
               case 'r': {
-                const transferCount = cell.nanites * transferRate;
-                cell.nanites -= transferCount;
-                neighbor.nanites += transferCount;
-
-                if (neighbor.locked && neighbor.nanites >= neighbor.power) {
-                  neighbor.locked = false;
-                  neighbor.nanites -= neighbor.power;
-                  neighbor.type = '#';
-                  const nc = this.getNeighborCoord(x, y, cell.dir);
-                  this.setGridProgress(nc.x, nc.y, 0);
-                }
-
                 break;
               }
               case 'e': {
@@ -387,13 +374,9 @@ class App {
             break;
           }
           case 'r': {
-            if (cell.locked) {
-              eBG.style.backgroundColor = colors[cell.type];
-              const f = Math.max(0, 1 - cell.nanites / cell.power);
-              this.setGridProgress(x, y, f);
-            } else {
-              eBG.style.backgroundColor = this.getUnlockedColor(cell.nanites);
-            }
+            eBG.style.backgroundColor = colors[cell.type];
+            const f = Math.max(0, 1 - cell.nanites / cell.power);
+            this.setGridProgress(x, y, f);
             
             eFG.innerText = cell.power.toExponential(1);
             break;
@@ -411,7 +394,7 @@ class App {
     window.requestAnimationFrame(() => this.draw());
   }
 
-  createParticle(evt) {
+  createParticle(gridx, gridy) {
     const particle = document.createElement('div');
     particle.classList.add('particle');
     particle.innerText = '$*X#'[Math.floor(Math.random() * 4)];
@@ -431,7 +414,7 @@ class App {
     particle.style.width = '10px';
     particle.style.height = '10px';
 
-    const rect = evt.target.getBoundingClientRect();
+    const rect = this.UI[`gridCellBackground${gridx}_${gridy}`].getBoundingClientRect();
     const x = rect.left;
     const y = rect.top;
 
@@ -498,6 +481,36 @@ class App {
       }
       case 'r': {
         if (cell.locked) { return; }
+
+        const opDirMap = {
+          up: 'down',
+          down: 'up',
+          left: 'right',
+          right: 'left'
+        };
+        ['up', 'down', 'left', 'right'].forEach( neighborDir => {
+          const neighbor = this.getNeighbor(x, y, neighborDir);
+          if (neighbor !== undefined) {
+            const opDir = opDirMap[neighborDir];
+            if (neighbor.dir === opDir) {
+              const collectStrength = 0.1;
+              const transferCount = neighbor.nanites * collectStrength;
+              neighbor.nanites -= transferCount;
+              cell.nanites += transferCount;
+
+              this.createParticle(x, y);
+
+              if (cell.nanites >= cell.power) {
+                cell.nanites -= cell.power;
+                cell.type = '#';
+                this.setGridProgress(x, y, 0);
+              }
+            }
+          }
+
+        });
+        
+
         break;
       }
       case 'e': {
@@ -536,7 +549,9 @@ class App {
     const action = keyMap[key];
     if (action === undefined) {return;}
     evt.preventDefault();
-    this.setCellDir(x, y, action);
+    if (this.state.grid[y][x].type === '#') {
+      this.setCellDir(x, y, action);
+    }
   }
 }
 
