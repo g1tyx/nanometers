@@ -12,7 +12,9 @@
     <div id='gameContainer'>
       <div id='gridContainer' class='area'></div>
       <div id='sidebarContainer' class='area'>
-      [LOGO] Nanometers<br>
+        <div id='logoRow'>
+          <img id='logo' src='./favicon.png'> Nanometers
+        </div>
       MAP # [N][A][N][O][M][E][T][E][R][S]<br>
       LEVEL # $0  silverKey 0 goldKey 0<br>
       EXP  [ 0/100             ]<br>
@@ -22,7 +24,13 @@
       [+] ATK 10/10<br>
       [+] DEF 10/10<br>
       Play time: #:#:#:#:#:#:#:#<br>
-      [Help] [Import] [Export] [Save] [Reset]<br>
+      <div id='buttonRow'>
+        <button id='btnHelp'>Help</button>
+        <button id='btnImport'>Import</button>
+        <button id='btnExport'>Export</button>
+        <button id='btnSave'>Save</button>
+        <button id='btnReset'>Reset</button>
+      </div>
       [] Ambient [] SFX [] Shake<br>
       [r/incremental_games Discord]<br>
       If you enjoy this open source game, please consider<br>
@@ -30,6 +38,10 @@
       me know about it on discord.<br>
       </div>
     </div>
+    <dialog id='helpContainer'>
+      HELP
+      <button id='helpClose'>Close</button>
+    </dialog>
     <script src='./levelData.js'></script>
     <script src='./index.js'></script>
   </body>

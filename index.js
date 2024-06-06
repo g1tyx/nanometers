@@ -76,7 +76,7 @@ class App {
 
     this.arrowDirs = ['left', 'right', 'up', 'down'];
     this.selectedCell = undefined;
-    this.UI = {};
+    this.initUI();
     this.initGrid(0);
 
     setInterval(() => this.update(), 1000/60);
@@ -84,13 +84,20 @@ class App {
     this.draw();
   }
 
-
   loadFromStorage() {
     const rawState = localStorage.getItem('nanometers');
 
     this.state = {
       savedTime: 0,
-      lastTime: (new Date()).getTime()
+      lastTime: (new Date()).getTime(),
+      exp: 0,
+      life: 100,
+      lifeMax: 100,
+      act: 50,
+      actMax: 50,
+      rcv: 10,
+      atk: 10,
+      def: 10
     };
 
     if (rawState !== null) {
@@ -125,6 +132,32 @@ class App {
       sat = sat > 100 ? 100 : sat; //multi^.9 * 6 reaches at 23
       let light = 50;
       return "hsl("+hue+", "+sat+"%, "+light+"%)";
+  }
+
+  showModal(name) {
+    this.UI.body.classList.add('blur2px');
+    this.UI[name].showModal();  
+  }
+
+  closeModal(name) {
+    this.UI.body.classList.remove('blur2px');
+    this.UI[name].close();
+  }
+
+  initUI() {
+    this.UI = {};
+
+    //get all the elements from the static HTML
+    const namedElements = document.querySelectorAll('*[id]');
+    for (let i = 0; i < namedElements.length; i++) {
+      const namedElement = namedElements.item(i);
+      this.UI[namedElement.id] = namedElement;
+    }
+
+    this.UI.body = document.querySelector('body');
+
+    this.UI.btnHelp.onclick = () => { this.showModal('helpContainer'); }
+    this.UI.helpClose.onclick = () => { this.closeModal('helpContainer'); }
   }
 
   initGrid(level) {
@@ -186,7 +219,11 @@ class App {
           const progressDiv = document.createElement('div');
           const pName = `gridCellProgress${x}_${y}`;
           progressDiv.id = pName;
-          progressDiv.classList.add('gridProgress');
+          if (type === 'r') {
+            progressDiv.classList.add('gridProgressResource');
+          } else {
+            progressDiv.classList.add('gridProgressEnemy');
+          }
           this.UI[pName] = progressDiv;
 
           d.appendChild(progressDiv);
@@ -357,7 +394,7 @@ class App {
       '.': 'transparent',
       '#': 'green',
       'r': 'blue',
-      'e': 'yellow'
+      'e': 'red'
     };
     for (let y = 0; y < 16; y++) {
       const gridRow = this.state.grid[y];
@@ -382,6 +419,11 @@ class App {
             break;
           }
           case 'e': {
+            eBG.style.backgroundColor = colors[cell.type];
+            const f = Math.max(0, 1 - cell.nanites / cell.power);
+            this.setGridProgress(x, y, f);
+            
+            eFG.innerText = cell.power.toExponential(1);
             break;
           }
         }
@@ -479,8 +521,14 @@ class App {
       case '#': {
         break;
       }
+      case 'e': {
+        //FALL THROUGH
+      }
       case 'r': {
-        if (cell.locked) { return; }
+        if (cell.locked) { 
+          //TODO: unlock if player has a key
+          return; 
+        }
 
         const opDirMap = {
           up: 'down',
@@ -493,7 +541,8 @@ class App {
           if (neighbor !== undefined) {
             const opDir = opDirMap[neighborDir];
             if (neighbor.dir === opDir) {
-              const collectStrength = 0.1;
+              //TODO: collectStrength should be a function of stats
+              const collectStrength = 0.1; 
               const transferCount = neighbor.nanites * collectStrength;
               neighbor.nanites -= transferCount;
               cell.nanites += transferCount;
@@ -511,10 +560,6 @@ class App {
         });
         
 
-        break;
-      }
-      case 'e': {
-        if (cell.locked) { return; }
         break;
       }
     }
