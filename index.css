@@ -45,6 +45,14 @@ body {
   filter: drop-shadow(4px 4px 3px hsla(0, 0%, 0%, 45%));
 }
 
+.nanometersDisplay {
+  display: inline-block;
+  background: hsl(0, 0%, 79%);
+  width: 16px;
+  text-align: center;
+  filter: grayscale(0.7);
+}
+
 #gridContainer {
   display: grid;
   width: 817px;

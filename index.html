@@ -15,15 +15,33 @@
         <div id='logoRow'>
           <img id='logo' src='./favicon.png'> Nanometers
         </div>
-      MAP # [N][A][N][O][M][E][T][E][R][S]<br>
-      LEVEL # $0  silverKey 0 goldKey 0<br>
-      EXP  [ 0/100             ]<br>
-      LIFE [ 100/100           ]<br>
-      ACT  [ 50/50             ]<br>
-      [+] RCV 10<br>
-      [+] ATK 10/10<br>
-      [+] DEF 10/10<br>
-      Play time: #:#:#:#:#:#:#:#<br>
+      <div>Map #<span id='spanMapNum'>#</span>
+        <span class='nanometersDisplay' id='nd0'>N</span>
+        <span class='nanometersDisplay' id='nd1'>A</span>
+        <span class='nanometersDisplay' id='nd2'>N</span>
+        <span class='nanometersDisplay' id='nd3'>O</span>
+        <span class='nanometersDisplay' id='nd4'>M</span>
+        <span class='nanometersDisplay' id='nd5'>E</span>
+        <span class='nanometersDisplay' id='nd6'>T</span>
+        <span class='nanometersDisplay' id='nd7'>E</span>
+        <span class='nanometersDisplay' id='nd8'>R</span>
+        <span class='nanometersDisplay' id='nd9'>S</span>
+      </div>
+      <div>$<span id='cash'>0</span> 
+        <img src='./silverKey.png'> <span id='spanKeyCountS'>0</span> 
+        <img src='./goldKey.png'> <span id='spanKeyCountG'>0</span> 
+      </div>
+      <table>
+        <tr><td>EXP</td><td><span class='sidebarProgressContainer' id='spcexp'></span></td></tr>
+        <tr><td>LIFE</td><td><span class='sidebarProgressContainer' id='spclife'></span></td></tr>
+        <tr><td>ACT</td><td><span class='sidebarProgressContainer' id='spcact'></span></td></tr>
+      </table>
+      <table>
+        <tr><td><button id='btnBuyRcv'>+</button></td><td>RCV</td><td id='rcvVal'></td></tr>
+        <tr><td><button id='btnBuyAtk'>+</button></td><td>ATK</td><td id='atkVal'></td></tr>
+        <tr><td><button id='btnBuyDef'>+</button></td><td>DEF</td><td id='defVal'></td></tr>
+      </table>
+      <div>Play time: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
       <div id='buttonRow'>
         <button id='btnHelp'>Help</button>
         <button id='btnImport'>Import</button>
@@ -31,11 +49,17 @@
         <button id='btnSave'>Save</button>
         <button id='btnReset'>Reset</button>
       </div>
-      [] Ambient [] SFX [] Shake<br>
-      [r/incremental_games Discord]<br>
+      <div>
+        <input id='chkAmbient' type='checkbox' checked>Ambient 
+        <input id='chkSFX' type='checkbox' checked>SFX
+        <input id='chkShake' type='checkbox' checked>Shake
+      </div>
+      <div><a href="https://discord.gg/r-incremental-games-256804627310182401">r/incremental_games Discord</a></div>
+      <div>
       If you enjoy this open source game, please consider<br>
       making a donation to your favorite charity and letting<br>
-      me know about it on discord.<br>
+      me know about it on discord.
+      </div>
       </div>
     </div>
     <dialog id='helpContainer'>
