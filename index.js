@@ -312,6 +312,7 @@ class App {
     return undefined;
   }
 
+  //this happens once per tick period which starts at 1 per second
   tick() {
     const nanitesRate = 1;
     const transferRate = 0.01;
@@ -320,28 +321,42 @@ class App {
       const gridRow = this.state.grid[y];
       for (let x = 0; x < 16; x++) {
         const cell = gridRow[x];
-        if (cell.type === '#') {
-          cell.nanites += nanitesRate;
-          if (cell.dir !== '') {
-            const neighbor = this.getNeighbor(x, y, cell.dir);
-            if (neighbor === undefined) {continue;}
-            switch (neighbor.type) {
-              case '#': {
-                const transferCount = cell.nanites * transferRate;
-                cell.nanites -= transferCount;
-                neighbor.nanites += transferCount;
-                break;
-              }
-              case 'r': {
-                break;
-              }
-              case 'e': {
-                break;
-              }
-              case '.': {
-                break;
+        switch (cell.type) {
+          case '#': {
+            cell.nanites += nanitesRate;
+            if (cell.dir !== '') {
+              const neighbor = this.getNeighbor(x, y, cell.dir);
+              if (neighbor === undefined) {continue;}
+              switch (neighbor.type) {
+                case '#': {
+                  const transferCount = cell.nanites * transferRate;
+                  cell.nanites -= transferCount;
+                  neighbor.nanites += transferCount;
+                  break;
+                }
+                case 'r': {
+                  break;
+                }
+                case 'e': {
+                  break;
+                }
+                case '.': {
+                  break;
+                }
               }
             }
+            break;
+          }
+          case 'e': {
+            //recover cell health
+            const recovery = cell.power * 0.1;
+            cell.nanites = Math.max(0, cell.nanites - recovery);
+
+            if (cell.nanites > 0) {
+              //damage player
+              //TODO: damage player
+            }
+            break;
           }
         }
       }
