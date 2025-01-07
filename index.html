@@ -15,7 +15,7 @@
         <div id='logoRow'>
           <img id='logo' src='./favicon.png'> Nanometers
         </div>
-      <div>Map #<span id='spanMapNum'>#</span>
+      <div>
         <span class='nanometersDisplay' id='nd0'>N</span>
         <span class='nanometersDisplay' id='nd1'>A</span>
         <span class='nanometersDisplay' id='nd2'>N</span>
@@ -27,9 +27,10 @@
         <span class='nanometersDisplay' id='nd8'>R</span>
         <span class='nanometersDisplay' id='nd9'>S</span>
       </div>
-      <div>$<span id='cash'>0</span> 
+      <div>
         <img src='./silverKey.png'> <span id='spanKeyCountS'>0</span> 
         <img src='./goldKey.png'> <span id='spanKeyCountG'>0</span> 
+        $<span id='cash'>0</span> 
       </div>
       <table>
         <tr><td>EXP</td><td><span class='sidebarProgressContainer' id='spcexp'></span></td></tr>
@@ -44,9 +45,7 @@
       <div>Play time: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
       <div id='buttonRow'>
         <button id='btnHelp'>Help</button>
-        <button id='btnImport'>Import</button>
-        <button id='btnExport'>Export</button>
-        <button id='btnSave'>Save</button>
+        <button id='btnImpExp'>Import/Export</button>
         <button id='btnReset'>Reset</button>
       </div>
       <div>
@@ -65,6 +64,22 @@
     <dialog id='helpContainer'>
       HELP
       <button id='helpClose'>Close</button>
+    </dialog>
+    <dialog id='imexContainer'>
+      <div>Import / Export</div>
+      <textarea id='imexText' rows='4' cols='20'></textarea>
+      <div>
+        <button id='imexImport'>Import</button>
+        <button id='imexExport'>Export</button>
+        <button id='imexClose'>Close</button>
+      </div>
+    </dialog>
+    <dialog id='resetContainer'>
+      Are you sure you want to reset?
+      <div>
+        <button id='resetYes'>Yes</button>
+        <button id='resetNo'>No</button>
+      </div>
     </dialog>
     <script src='./levelData.js'></script>
     <script src='./index.js'></script>

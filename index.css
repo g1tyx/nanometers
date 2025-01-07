@@ -7,8 +7,14 @@ body {
   font-family: Arial, Helvetica, serif;
 }
 
-.blur2px {
-  filter: blur(2px);
+dialog {
+  background-color: hsl(221, 31%, 62%);
+  border-radius: 4px;
+  box-shadow: 4px 4px 3px hsla(0, 0%, 0%, 45%);
+}
+
+dialog::backdrop {
+  backdrop-filter: blur(2px);
 }
 
 .area {
@@ -55,12 +61,20 @@ body {
 
 #gridContainer {
   display: grid;
-  width: 817px;
-  height: 817px;
-  grid-template-columns: repeat(10, 80px);
-  grid-template-rows: repeat(10, 80px);
+  width: 808px;
+  height: 808px;
+  grid-template-columns: repeat(20, 40px);
+  grid-template-rows: repeat(20, 40px);
   background-color: hsl(221, 24%, 69%);
-  grid-gap: 1px;
+  /*grid-gap: 1px;*/
+}
+
+.areaContainer {
+  display: grid;
+  border: 1px solid black;
+  outline: none; /* prevent focus highlight */
+  user-select: none;
+  grid-template: 8px 1fr 8px / 8px 1fr 8px;
 }
 
 .particle {
@@ -81,40 +95,28 @@ body {
 .leftArrow {
   display: none;
   grid-column: 1;
-  grid-row: 2 / 3;
-  border-top: 32px solid transparent;
-  border-bottom: 32px solid transparent;
-  border-right: 8px solid black;
+  grid-row: 1 / 4;
 }
 
 .rightArrow {
   display: none;
   grid-column: 3;
-  grid-row: 2 / 3;
-  border-top: 32px solid transparent;
-  border-bottom: 32px solid transparent;
-  border-left: 8px solid black;
+  grid-row: 1 / 4;
 }
 
 .upArrow {
   display: none;
-  grid-column: 2 / 3;
+  grid-column: 1 / 4;
   grid-row: 1;
-  border-left: 32px solid transparent;
-  border-right: 32px solid transparent;
-  border-bottom: 8px solid black;
 }
 
 .downArrow {
   display: none;
-  grid-column: 2 / 3;
+  grid-column: 1 / 4;
   grid-row: 3;
-  border-left: 32px solid transparent;
-  border-right: 32px solid transparent;
-  border-top: 8px solid black;
 }
 
-.cellSelected {
+.areaSelected {
   box-shadow: inset 0px 0px 5px 0px black;
 }
 
@@ -135,7 +137,9 @@ body {
   background-color: yellow;
 }
 
-.gridForeground {
+.cellForeground {
   grid-area: 2/2/3/3;
   background-color: transparent;
+  font-size: 10px;
+  text-align: center;
 }

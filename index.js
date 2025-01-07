@@ -36,6 +36,9 @@ TODO:
     atk
     def
   attacking works similar to risk
+  need smaller grid but make areas be able to span multiple cells
+  use particles to show the flow of power
+  add inspiration links to info box
 
   costs:
   1: 10 => +1
@@ -68,19 +71,22 @@ About parameter
 */
 
 class App {
-  constructor() {
+  constructor(areas, areasGrid) {
     console.log('init');
+    this.areas = areas;
+    this.areasGrid = areasGrid;
 
     this.loadFromStorage();
 
 
     this.arrowDirs = ['left', 'right', 'up', 'down'];
     this.selectedCell = undefined;
+    this.gridSize = 20;
     this.initUI();
-    this.initGrid(0);
+    this.initGrid();
 
     setInterval(() => this.update(), 1000/60);
-    setInterval(() => this.saveToStorage(), 30 * 1000);
+    setInterval(() => this.saveToStorage(), 5 * 1000);
     this.draw();
   }
 
@@ -97,7 +103,8 @@ class App {
       actMax: 50,
       rcv: 10,
       atk: 10,
-      def: 10
+      def: 10,
+      areas: {}
     };
 
     if (rawState !== null) {
@@ -123,6 +130,32 @@ class App {
     window.location.reload();
   }
 
+  genExportStr() {
+    return btoa(JSON.stringify(this.state));
+  }
+
+  export() {
+    this.UI.imexText.value = this.genExportStr();
+  }
+
+  import() {
+    const importString = this.UI.imexText.value.trim();
+
+    const decodedStr = atob(importString);
+
+    let state;
+    try {
+      state = JSON.parse(decodedStr);
+    } catch (error) {
+      console.error("Corrupted import string. JSON.parse check failed.");
+      console.log(error);
+      return;
+    }
+
+    this.disableSaves = true;
+    localStorage.setItem('nanometers', decodedStr);
+    window.location.reload();
+  }
 
   //Copied from Nanospread
   colorShiftMath(initialColor, multi, leftOverMulti) {
@@ -135,12 +168,10 @@ class App {
   }
 
   showModal(name) {
-    this.UI.body.classList.add('blur2px');
     this.UI[name].showModal();  
   }
 
   closeModal(name) {
-    this.UI.body.classList.remove('blur2px');
     this.UI[name].close();
   }
 
@@ -158,16 +189,24 @@ class App {
 
     this.UI.btnHelp.onclick = () => { this.showModal('helpContainer'); }
     this.UI.helpClose.onclick = () => { this.closeModal('helpContainer'); }
+    this.UI.btnImpExp.onclick = () => { this.showModal('imexContainer'); }
+    this.UI.imexClose.onclick = () => { this.closeModal('imexContainer'); }
+    this.UI.imexImport.onclick = () => { this.import(); };
+    this.UI.imexExport.onclick = () => { this.export(); };
+    this.UI.btnReset.onclick = () => { this.showModal('resetContainer'); }
+    this.UI.resetNo.onclick = () => { this.closeModal('resetContainer'); }
+    this.UI.resetYes.onclick = () => { this.reset(); }
   }
 
-  initGrid(level) {
+  initGrid() {
     const container = document.getElementById('gridContainer');
 
-    this.state.grid = new Array(16);
-    for (let y = 0; y < 16; y++) {
-      const gridRow = new Array(16);
+    /*
+    this.state.grid = new Array(this.gridSize);
+    for (let y = 0; y < this.gridSize; y++) {
+      const gridRow = new Array(this.gridSize);
       this.state.grid[y] = gridRow;
-      for (let x = 0; x < 16; x++) {
+      for (let x = 0; x < this.gridSize; x++) {
         const d = document.createElement('div');
         const id = `gridCellContainer${x}_${y}`;
         if (this.UI[id]) {
@@ -257,7 +296,122 @@ class App {
 
       }
     }
+    */
 
+    //map of symbol to grid locations
+    const areaLocations = {};
+    //map of grid location to symbol
+    const locationAreas = {};
+    //map of symbol to index;
+    const symbolIndexes = {};
+    this.areaLocations = areaLocations;
+    this.locationAreas = locationAreas;
+    this.symbolIndexes = symbolIndexes;
+
+    this.areasGrid.forEach( (row, y) => {
+      row.split('').forEach( (sym, x) => {
+        let info = areaLocations[sym];
+        if (info === undefined) {
+          info = {x, y, w: 1, h: 1};
+          areaLocations[sym] = info;
+        } else {
+          info.w = (x - info.x) + 1;
+          info.h = (y - info.y) + 1;
+        }
+        locationAreas[`${x},${y}`] = sym;
+      });
+    });
+
+    //have to account for 1px border
+    const cellSize = 40 - 2 * 1;
+
+    this.areas.forEach( (area, i) => {
+      symbolIndexes[area.sym] = i;
+      const eArea = document.createElement('div');
+      eArea.id = `div_area_${i}`;
+      this.UI[eArea.id] = eArea;
+      eArea.style.background = area.type === 'cell' ? 'gray' : 'yellow';
+      const info = areaLocations[area.sym];
+      eArea.style.gridColumnStart = info.x + 1;
+      eArea.style.gridColumnEnd = info.x + info.w + 1;
+      eArea.style.gridRowStart = info.y + 1;
+      eArea.style.gridRowEnd = info.y + info.h + 1;
+      eArea.classList.add('areaContainer');
+
+      eArea.onclick = () => this.clickArea(area.sym);
+      //to allow keyboard events
+      eArea.setAttribute('tabindex', '-1');
+      eArea.onkeydown = (evt) => this.keydownArea(evt, area.sym);
+
+      const fgDiv = document.createElement('div');
+      const fgName = `area_fg_${i}`;
+      fgDiv.id = fgName;
+      fgDiv.classList.add('cellForeground');
+      this.UI[fgName] = fgDiv;
+      fgDiv.textContent = '1e2';
+
+      eArea.append(fgDiv);
+
+      const pw = cellSize * info.w;
+      const ph = cellSize * info.h;
+      const arrowWidth = 8; 
+      this.arrowDirs.forEach( dir => {
+        const arrow = document.createElement('div');
+        arrow.id = `div_area_arrow_${i}_${dir}`;
+        this.UI[arrow.id] = arrow;
+        arrow.classList.add(`${dir}Arrow`);
+
+        switch (dir) {
+          case 'left': {
+            const tsize = ph / 2;
+            arrow.style.borderTop = `${tsize}px solid transparent`;
+            arrow.style.borderBottom = `${tsize}px solid transparent`;
+            arrow.style.borderRight = `${arrowWidth}px solid black`;
+            break;
+          }
+          case 'right': {
+            const tsize = ph / 2;
+            arrow.style.borderTop = `${tsize}px solid transparent`;
+            arrow.style.borderBottom = `${tsize}px solid transparent`;
+            arrow.style.borderLeft = `${arrowWidth}px solid black`;
+            break;
+          }
+          case 'up': {
+            const tsize = pw / 2;
+            arrow.style.borderLeft = `${tsize}px solid transparent`;
+            arrow.style.borderRight = `${tsize}px solid transparent`;
+            arrow.style.borderBottom = `${arrowWidth}px solid black`;
+            break;
+          }
+          case 'down': {
+            const tsize = pw / 2;
+            arrow.style.borderLeft = `${tsize}px solid transparent`;
+            arrow.style.borderRight = `${tsize}px solid transparent`;
+            arrow.style.borderTop = `${arrowWidth}px solid black`;
+            break;
+          }
+        }
+
+        eArea.append(arrow);
+
+        const areaState = {
+        };
+
+        switch (area.type) {
+          case 'cell': {
+            areaState.nanites = 0;
+            areaState.lock = area.lock ?? 0;
+            areaState.power = area.val;
+            break;
+          }
+        }
+
+        //overwrite default areaState with saved areaState
+        this.state.areas[i] = {...areaState, ...this.state.areas[i]};
+      });
+
+      container.appendChild(eArea);
+    });
   }
 
   getNeighbor(x, y, dir) {
@@ -269,7 +423,7 @@ class App {
       }
       case 'down': {
         const ny = y + 1;
-        if (ny >= 16) {return undefined;}
+        if (ny >= this.gridSize) {return undefined;}
         return this.state.grid[ny][x];
       }
       case 'left': {
@@ -279,7 +433,7 @@ class App {
       }
       case 'right': {
         const nx = x + 1;
-        if (nx >= 16) {return undefined;}
+        if (nx >= this.gridSize) {return undefined;}
         return this.state.grid[y][nx];
       }
     }
@@ -295,7 +449,7 @@ class App {
       }
       case 'down': {
         const ny = y + 1;
-        if (ny >= 16) {return undefined;}
+        if (ny >= this.gridSize) {return undefined;}
         return {x, y: ny};
       }
       case 'left': {
@@ -305,7 +459,7 @@ class App {
       }
       case 'right': {
         const nx = x + 1;
-        if (nx >= 16) {return undefined;}
+        if (nx >= this.gridSize) {return undefined;}
         return {x: nx, y};
       }
     }
@@ -314,12 +468,13 @@ class App {
 
   //this happens once per tick period which starts at 1 per second
   tick() {
+    return;
     const nanitesRate = 1;
     const transferRate = 0.01;
 
-    for (let y = 0; y < 16; y++) {
+    for (let y = 0; y < this.gridSize; y++) {
       const gridRow = this.state.grid[y];
-      for (let x = 0; x < 16; x++) {
+      for (let x = 0; x < this.gridSize; x++) {
         const cell = gridRow[x];
         switch (cell.type) {
           case '#': {
@@ -404,16 +559,72 @@ class App {
     eProgress.style.width = `${f * 100}%`;
   }
 
+  timeToObj(t) {
+    const result = {};
+
+    result.y = Math.floor(t / (365 * 24 * 60 * 60));
+    t = t % (365 * 24 * 60 * 60);
+    result.d = Math.floor(t / (24 * 60 * 60));
+    t = t % (24 * 60 * 60);
+    result.h = Math.floor(t / (60 * 60));
+    t = t % (60 * 60);
+    result.m = Math.floor(t / 60);
+    t = t % 60;
+    result.s = t;
+
+    return result;
+  }  
+
+  remainingToStr(ms, full) {
+    if (ms === Infinity) {
+      return 'Infinity';
+    }
+
+    const timeObj = this.timeToObj(ms / 1000);
+
+    if (full) {
+      return `${timeObj.y}:${timeObj.d.toString().padStart(3,0)}:${timeObj.h.toString().padStart(2,0)}:${timeObj.m.toString().padStart(2,0)}:${timeObj.s.toFixed(1).padStart(4,0)}`;
+    }
+
+    //if (timeObj.y > 0 || timeObj.d > 0 || timeObj.h > 0) {
+      //return `${timeObj.y}:${timeObj.d.toString().padStart(3,0)}:${timeObj.h.toString().padStart(2,0)}:${timeObj.m.toString().padStart(2,0)}`;
+      return `${timeObj.y}:${timeObj.d.toString().padStart(3,0)}:${timeObj.h.toString().padStart(2,0)}:${timeObj.m.toString().padStart(2,0)}:${Math.ceil(timeObj.s).toString().padStart(2,0)}`;
+    //} else {
+      //return `${timeObj.m.toString().padStart(2,0)}:${timeObj.s.toFixed(1).padStart(4,0)}`;
+    //  return `${timeObj.m.toString().padStart(2,0)}:${Math.ceil(timeObj.s).toString().padStart(2,0)}`;
+    //}
+
+  }
+
   draw() {
+
     const colors = {
       '.': 'transparent',
       '#': 'green',
       'r': 'blue',
       'e': 'red'
     };
-    for (let y = 0; y < 16; y++) {
+
+    this.areas.forEach( (area, i) => {
+      const state = this.state.areas[i];
+      const fgDiv = this.UI[`area_fg_${i}`];
+      fgDiv.textContent = state.nanites;
+    });
+
+    
+    const curTime = (new Date()).getTime();
+    if (this.state.endTime === undefined) {
+      this.UI.spanPlayTime.textContent = this.remainingToStr(curTime - this.state.gameStart, true);
+    } else {
+      this.UI.spanPlayTime.textContent = this.remainingToStr(this.state.endTime - this.state.gameStart, true);
+    }
+
+    window.requestAnimationFrame(() => this.draw());
+
+    return;
+    for (let y = 0; y < this.gridSize; y++) {
       const gridRow = this.state.grid[y];
-      for (let x = 0; x < 16; x++) {
+      for (let x = 0; x < this.gridSize; x++) {
         const cell = gridRow[x];
         if (cell.type === '.') {continue;}
         const eBG = this.UI[`gridCellBackground${x}_${y}`];
@@ -522,79 +733,45 @@ class App {
     };
   }
 
-  setCellDir(x, y, targetDir) {
+  getAreaElementFromSym(sym) {
+    const areaIndex = this.symbolIndexes[sym];
+    const areaDiv = this.UI[`div_area_${areaIndex}`];
+    return areaDiv;
+  }
+
+  setAreaDir(sym, targetDir) {
+    
+    //TODO: set state of cell direction
+    const areaDiv = this.getAreaElementFromSym(sym);
+    const areaIndex = this.symbolIndexes[sym];
+
     this.arrowDirs.forEach( dir => {
-      this.UI[`gridCellContainer${x}_${y}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
+      this.UI[`div_area_arrow_${areaIndex}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
     });
-    this.state.grid[y][x].dir = targetDir;
-  }
-
-  clickCell(x, y) {
-    this.selectCell(x, y);
-    const cell = this.state.grid[y][x];
-    switch (cell.type) {
-      case '#': {
-        break;
-      }
-      case 'e': {
-        //FALL THROUGH
-      }
-      case 'r': {
-        if (cell.locked) { 
-          //TODO: unlock if player has a key
-          return; 
-        }
-
-        const opDirMap = {
-          up: 'down',
-          down: 'up',
-          left: 'right',
-          right: 'left'
-        };
-        ['up', 'down', 'left', 'right'].forEach( neighborDir => {
-          const neighbor = this.getNeighbor(x, y, neighborDir);
-          if (neighbor !== undefined) {
-            const opDir = opDirMap[neighborDir];
-            if (neighbor.dir === opDir) {
-              //TODO: collectStrength should be a function of stats
-              const collectStrength = 0.1; 
-              const transferCount = neighbor.nanites * collectStrength;
-              neighbor.nanites -= transferCount;
-              cell.nanites += transferCount;
-
-              this.createParticle(x, y);
-
-              if (cell.nanites >= cell.power) {
-                cell.nanites -= cell.power;
-                cell.type = '#';
-                this.setGridProgress(x, y, 0);
-              }
-            }
-          }
-
-        });
-        
-
-        break;
-      }
-    }
 
   }
 
-  selectCell(x, y) {
-    const curSelectedElement = document.getElementsByClassName('cellSelected');
+  clickArea(sym) {
+    this.selectArea(sym);
+
+  }
+
+  selectArea(sym) {
+    //unselect previous area 
+    const curSelectedElement = document.getElementsByClassName('areaSelected');
     if (curSelectedElement.length > 0) {
       for (let i = 0; i < curSelectedElement.length; i++) {
-        curSelectedElement.item(i).classList.remove('cellSelected');
+        curSelectedElement.item(i).classList.remove('areaSelected');
       }
     }
-    if (this.state.grid[y][x].type !== '.') {
-      this.UI[`gridCellContainer${x}_${y}`].classList.add('cellSelected');
-      this.selectedCell = {x, y, e: this.UI[`gridCellContainer${x}_${y}`]};
-    }
+
+    //select new cell
+    const areaDiv = this.getAreaElementFromSym(sym);
+    areaDiv.classList.add('areaSelected');
+    this.selectedArea = sym;
   }
 
-  keydownCell(evt, x, y) {
+  keydownArea(evt, sym) {
     const key = evt.key;
     const keyMap = {
       w: 'up',
@@ -609,10 +786,8 @@ class App {
     const action = keyMap[key];
     if (action === undefined) {return;}
     evt.preventDefault();
-    if (this.state.grid[y][x].type === '#') {
-      this.setCellDir(x, y, action);
-    }
+    this.setAreaDir(sym, action);
   }
 }
 
-const app = new App();
+const app = new App(AREAS, AREAS_GRID);
