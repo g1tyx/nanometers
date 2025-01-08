@@ -156,16 +156,6 @@ class App {
     window.location.reload();
   }
 
-  //Copied from Nanospread
-  colorShiftMath(initialColor, multi, leftOverMulti) {
-      //Hue is 0-360, 0 is red, 120 is green, 240 is blue. Sat is 0-100, 0=greyscale. Light is 0-100, 25=half black
-      let hue = initialColor - (multi-1)*30; //- (leftOverMulti)*9;
-      let sat = 10+Math.pow(multi, .8) * 2; //+ (leftOverMulti)*3
-      sat = sat > 100 ? 100 : sat; //multi^.9 * 6 reaches at 23
-      let light = 50;
-      return "hsl("+hue+", "+sat+"%, "+light+"%)";
-  }
-
   showModal(name) {
     this.UI[name].showModal();  
   }
@@ -316,6 +306,17 @@ class App {
           areaState.nanites = 0;
           areaState.lock = area.lock ?? 0;
           areaState.shield = area.val;
+
+          switch (areaState.lock) {
+            case 1: {
+              fgDiv.style.backgroundImage = 'url("silverKey.png")';
+              break;
+            }
+            case 2: {
+              fgDiv.style.backgroundImage = 'url("goldKey.png")';
+              break;
+            }
+          }
           break;
         }
         case 'spawn': {
@@ -394,7 +395,11 @@ class App {
       }
     }
 
-    return neighbors;
+    return neighbors.filter( nsym => {
+      const nindex = this.symbolIndexes[nsym];
+      const nstate = this.state.areas[nindex];
+      return nstate.lock === 0;
+    });
   }
 
   //this happens once per tick period which starts at 1 per second
@@ -469,8 +474,12 @@ class App {
     //h in [120,315]
     //s in [30, 100]
     //h move first
-    const h = 120 + (OOM * 30) % (315 - 120);
-    const s = 30 + Math.floor((OOM * 30) / (315 - 120)) * 5;
+    //const h = 120 + (OOM * 30) % (315 - 120);
+    //const s = 30 + Math.floor((OOM * 30) / (315 - 120)) * 5;
+    //const l = 50;
+    //return `hsl(${h},${s}%,${l}%)`;
+    const h = OOM * 300 / 308;
+    const s = 100;
     const l = 50;
     return `hsl(${h},${s}%,${l}%)`;
   }
