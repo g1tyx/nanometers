@@ -126,15 +126,9 @@ dialog::backdrop {
   box-shadow: 2px 2px 4px black;
 }
 
-.gridProgressResource {
-  grid-area: 2/2/3/3;
-  background-color: hsl(0, 0%, 73%); 
-  color: white;
-}
-
-.gridProgressEnemy {
-  grid-area: 2/2/3/3;
-  background-color: yellow;
+.areaProgress {
+  background-color: green;
+  grid-area: 1/1/4/4;
 }
 
 .cellForeground {
@@ -142,4 +136,5 @@ dialog::backdrop {
   background-color: transparent;
   font-size: 10px;
   text-align: center;
+  font-family: "Ubuntu Mono", monospace;
 }

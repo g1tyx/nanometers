@@ -94,7 +94,6 @@ class App {
     const rawState = localStorage.getItem('nanometers');
 
     this.state = {
-      savedTime: 0,
       lastTime: (new Date()).getTime(),
       exp: 0,
       life: 100,
@@ -201,103 +200,6 @@ class App {
   initGrid() {
     const container = document.getElementById('gridContainer');
 
-    /*
-    this.state.grid = new Array(this.gridSize);
-    for (let y = 0; y < this.gridSize; y++) {
-      const gridRow = new Array(this.gridSize);
-      this.state.grid[y] = gridRow;
-      for (let x = 0; x < this.gridSize; x++) {
-        const d = document.createElement('div');
-        const id = `gridCellContainer${x}_${y}`;
-        if (this.UI[id]) {
-          this.UI[id].remove();
-        }
-
-        d.id = id;
-        d.onclick = () => this.clickCell(x, y);
-
-        this.UI[id] = d;
-        d.style.gridArea = `${y + 1} / ${x + 1} / ${y + 2} / ${x + 2}`;
-        const symbol = levelData[level].grid[y][x];
-        let type;
-        if (symbol === '.') {
-          type = '.';
-        } else if (symbol === '#') {
-          type = '#';
-        } else if (symbol.toLowerCase() === symbol) {
-          type = 'r';
-        } else if (symbol.toUpperCase() === symbol) {
-          type = 'e';
-        } else {
-          throw `UNKNOWN LEVEL DATA SYMBOL ${symbol} ${x} ${y}`;
-        }
-
-        if (type != '.') {
-          d.classList.add('gridCellContainer');
-          d.setAttribute('tabindex', '-1');
-
-          this.arrowDirs.forEach( dir => {
-            const arrow = document.createElement('div');
-            arrow.id = `${d.id}_${dir}`;
-            this.UI[arrow.id] = arrow;
-            arrow.classList.add(`${dir}Arrow`);
-            d.append(arrow);
-          });
-          d.onkeydown = (evt) => this.keydownCell(evt, x, y);
-          
-          const displayDiv = document.createElement('div');
-          const dName = `gridCellBackground${x}_${y}`;
-          displayDiv.id = dName;
-          displayDiv.classList.add('gridBackground');
-          this.UI[dName] = displayDiv;
-
-          d.appendChild(displayDiv);
-        }
-
-        if (type != '.' && type != '#') {
-          const progressDiv = document.createElement('div');
-          const pName = `gridCellProgress${x}_${y}`;
-          progressDiv.id = pName;
-          if (type === 'r') {
-            progressDiv.classList.add('gridProgressResource');
-          } else {
-            progressDiv.classList.add('gridProgressEnemy');
-          }
-          this.UI[pName] = progressDiv;
-
-          d.appendChild(progressDiv);
-        }
-
-        if (type !== '.') {
-          const fgDiv = document.createElement('div');
-          const fgName = `gridCellForeground${x}_${y}`;
-          fgDiv.id = fgName;
-          fgDiv.classList.add('gridForeground');
-          this.UI[fgName] = fgDiv;
-
-          d.appendChild(fgDiv);
-        }
-
-        container.append(d);
-
-
-        const nanites = type === '#' ? 1 : 0;
-        const power = type === '#' ? 0 : 1;
-        const locked = false;
-
-        //Everything that goes into this object gets saved to localStorage
-        gridRow[x] = {
-          type,
-          nanites,
-          power,
-          dir: '',
-          locked
-        };
-
-      }
-    }
-    */
-
     //map of symbol to grid locations
     const areaLocations = {};
     //map of grid location to symbol
@@ -343,6 +245,15 @@ class App {
       eArea.setAttribute('tabindex', '-1');
       eArea.onkeydown = (evt) => this.keydownArea(evt, area.sym);
 
+      if (area.type === 'cell') {
+        const eProgress = document.createElement('div');
+        eProgress.id = `div_area_progress_${i}`;
+        this.UI[eProgress.id] = eProgress;
+        eProgress.classList.add('areaProgress');
+
+        eArea.appendChild(eProgress);
+      }
+
       const fgDiv = document.createElement('div');
       const fgName = `area_fg_${i}`;
       fgDiv.id = fgName;
@@ -350,7 +261,7 @@ class App {
       this.UI[fgName] = fgDiv;
       fgDiv.textContent = '1e2';
 
-      eArea.append(fgDiv);
+      eArea.appendChild(fgDiv);
 
       const pw = cellSize * info.w;
       const ph = cellSize * info.h;
@@ -392,130 +303,140 @@ class App {
           }
         }
 
-        eArea.append(arrow);
+        eArea.appendChild(arrow);
 
-        const areaState = {
-        };
-
-        switch (area.type) {
-          case 'cell': {
-            areaState.nanites = 0;
-            areaState.lock = area.lock ?? 0;
-            areaState.power = area.val;
-            break;
-          }
-        }
-
-        //overwrite default areaState with saved areaState
-        this.state.areas[i] = {...areaState, ...this.state.areas[i]};
       });
+
+
+      const areaState = {
+      };
+
+      switch (area.type) {
+        case 'cell': {
+          areaState.nanites = 0;
+          areaState.lock = area.lock ?? 0;
+          areaState.shield = area.val;
+          break;
+        }
+        case 'spawn': {
+          areaState.nanites = 1;
+          areaState.lock = 0;
+          areaState.shield = 0;
+        }
+      }
+
+      //overwrite default areaState with saved areaState
+      this.state.areas[i] = {...areaState, ...this.state.areas[i]};
+
+      const areaDir = this.state.areas[i].dir;
+
+      if (areaDir !== undefined) {
+        this.setAreaDir(area.sym, areaDir);
+      }
 
       container.appendChild(eArea);
     });
   }
 
-  getNeighbor(x, y, dir) {
-    switch (dir) {
-      case 'up': {
-        const ny = y - 1;
-        if (ny < 0) {return undefined;}
-        return this.state.grid[ny][x];
-      }
-      case 'down': {
-        const ny = y + 1;
-        if (ny >= this.gridSize) {return undefined;}
-        return this.state.grid[ny][x];
-      }
-      case 'left': {
-        const nx = x - 1;
-        if (nx < 0) {return undefined;}
-        return this.state.grid[y][nx];
-      }
-      case 'right': {
-        const nx = x + 1;
-        if (nx >= this.gridSize) {return undefined;}
-        return this.state.grid[y][nx];
-      }
-    }
-    return undefined;
-  }
+  getAreaNeighbors(sym, dir) {
+    const neighbors = [];
 
-  getNeighborCoord(x, y, dir) {
+    const thisArea = this.areaLocations[sym];
+
     switch (dir) {
       case 'up': {
-        const ny = y - 1;
-        if (ny < 0) {return undefined;}
-        return {x, y: ny};
+        const y = thisArea.y;
+        for (let x = thisArea.x; x < thisArea.x + thisArea.w; x++) {
+          const nx = x;
+          const ny = y - 1;
+          const narea = this.locationAreas[`${nx},${ny}`];
+          if (narea !== undefined) {
+            neighbors.push(narea);
+          }
+        }
+        break;
       }
       case 'down': {
-        const ny = y + 1;
-        if (ny >= this.gridSize) {return undefined;}
-        return {x, y: ny};
+        const y = thisArea.y + thisArea.h - 1;
+        for (let x = thisArea.x; x < thisArea.x + thisArea.w; x++) {
+          const nx = x;
+          const ny = y + 1;
+          const narea = this.locationAreas[`${nx},${ny}`];
+          if (narea !== undefined) {
+            neighbors.push(narea);
+          }
+        }
+        break;
       }
       case 'left': {
-        const nx = x - 1;
-        if (nx < 0) {return undefined;}
-        return {x: nx, y};
+        const x = thisArea.x;
+        for (let y = thisArea.y; y < thisArea.y + thisArea.h; y++) {
+          const nx = x - 1;
+          const ny = y;
+          const narea = this.locationAreas[`${nx},${ny}`];
+          if (narea !== undefined) {
+            neighbors.push(narea);
+          }
+        }
+        break;
       }
       case 'right': {
-        const nx = x + 1;
-        if (nx >= this.gridSize) {return undefined;}
-        return {x: nx, y};
+        const x = thisArea.x + thisArea.w - 1;
+        for (let y = thisArea.y; y < thisArea.y + thisArea.h; y++) {
+          const nx = x + 1;
+          const ny = y;
+          const narea = this.locationAreas[`${nx},${ny}`];
+          if (narea !== undefined) {
+            neighbors.push(narea);
+          }
+        }
+        break;
       }
     }
-    return undefined;
+
+    return neighbors;
   }
 
   //this happens once per tick period which starts at 1 per second
   tick() {
-    return;
-    const nanitesRate = 1;
+ 
+    const generationRate = 0.01;
+    const recoveryRate = 0.01;
     const transferRate = 0.01;
 
-    for (let y = 0; y < this.gridSize; y++) {
-      const gridRow = this.state.grid[y];
-      for (let x = 0; x < this.gridSize; x++) {
-        const cell = gridRow[x];
-        switch (cell.type) {
-          case '#': {
-            cell.nanites += nanitesRate;
-            if (cell.dir !== '') {
-              const neighbor = this.getNeighbor(x, y, cell.dir);
-              if (neighbor === undefined) {continue;}
-              switch (neighbor.type) {
-                case '#': {
-                  const transferCount = cell.nanites * transferRate;
-                  cell.nanites -= transferCount;
-                  neighbor.nanites += transferCount;
-                  break;
-                }
-                case 'r': {
-                  break;
-                }
-                case 'e': {
-                  break;
-                }
-                case '.': {
-                  break;
-                }
+    this.areas.forEach( (area, i) => {
+      const state = this.state.areas[i];
+      switch (area.type) {
+        case 'spawn': {
+          //fall through
+        }
+        case 'cell': {
+          if (state.shield > 0) {
+            //recover shield
+            state.shield = Math.min(area.val, state.shield + recoveryRate * area.val);
+          } else {
+            if (state.dir !== undefined) {
+              const neighbors = this.getAreaNeighbors(area.sym, state.dir);
+              if (neighbors.length > 0) {
+                const transferVal = state.nanites * transferRate / neighbors.length;
+                state.nanites -= transferVal;
+                neighbors.forEach( nsym => {
+                  const nindex = this.symbolIndexes[nsym];
+                  const nstate = this.state.areas[nindex];
+                  if (nstate.shield > 0) {
+                    nstate.shield = Math.max(0, nstate.shield - transferVal);
+                  } else {
+                    nstate.nanites = Math.min(1e308, nstate.nanites + transferVal);
+                  }
+                });
               }
             }
-            break;
+            state.nanites += state.nanites * generationRate;
           }
-          case 'e': {
-            //recover cell health
-            const recovery = cell.power * 0.1;
-            cell.nanites = Math.max(0, cell.nanites - recovery);
-
-            if (cell.nanites > 0) {
-              //damage player
-              //TODO: damage player
-            }
-            break;
-          }
+          break;
         }
       }
-    }
+    });
   }
 
   update() {
@@ -596,22 +517,44 @@ class App {
 
   }
 
-  draw() {
+  formatNanitesForArea(val) {
+    if (val === undefined) {return '';}
 
-    const colors = {
-      '.': 'transparent',
-      '#': 'green',
-      'r': 'blue',
-      'e': 'red'
-    };
+    //remove unnecessary + and insert zero width space so narrow
+    //  divs will break the text in the right place
+    //TODO: Make this round up
+    return val.toExponential(1).replace('e+', '\u200be');
+  }
+
+  draw() {
 
     this.areas.forEach( (area, i) => {
       const state = this.state.areas[i];
       const fgDiv = this.UI[`area_fg_${i}`];
-      fgDiv.textContent = state.nanites;
+      const progDiv = this.UI[`div_area_progress_${i}`];
+      const areaContDiv = this.UI[`div_area_${i}`];
+      switch (area.type) {
+        case 'cell': {
+          if (state.shield <= 0) {
+            fgDiv.textContent = this.formatNanitesForArea(state.nanites);
+            progDiv.style.width = '0%';
+            areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+          } else {
+            fgDiv.textContent = this.formatNanitesForArea(state.shield);
+            const progressPercent = 100 * state.shield / area.val;
+            progDiv.style.width = `${progressPercent}%`;
+          }
+          break;
+        }
+        case 'spawn': {
+          fgDiv.textContent = this.formatNanitesForArea(state.nanites);
+          areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+          break;
+        }
+      }
     });
 
-    
+    //update info box 
     const curTime = (new Date()).getTime();
     if (this.state.endTime === undefined) {
       this.UI.spanPlayTime.textContent = this.remainingToStr(curTime - this.state.gameStart, true);
@@ -621,45 +564,6 @@ class App {
 
     window.requestAnimationFrame(() => this.draw());
 
-    return;
-    for (let y = 0; y < this.gridSize; y++) {
-      const gridRow = this.state.grid[y];
-      for (let x = 0; x < this.gridSize; x++) {
-        const cell = gridRow[x];
-        if (cell.type === '.') {continue;}
-        const eBG = this.UI[`gridCellBackground${x}_${y}`];
-        const eFG = this.UI[`gridCellForeground${x}_${y}`];
-        switch (cell.type) {
-          case '#': {
-            eBG.style.backgroundColor = this.getUnlockedColor(cell.nanites);
-            eFG.innerText = cell.nanites.toExponential(1);
-
-            break;
-          }
-          case 'r': {
-            eBG.style.backgroundColor = colors[cell.type];
-            const f = Math.max(0, 1 - cell.nanites / cell.power);
-            this.setGridProgress(x, y, f);
-            
-            eFG.innerText = cell.power.toExponential(1);
-            break;
-          }
-          case 'e': {
-            eBG.style.backgroundColor = colors[cell.type];
-            const f = Math.max(0, 1 - cell.nanites / cell.power);
-            this.setGridProgress(x, y, f);
-            
-            eFG.innerText = cell.power.toExponential(1);
-            break;
-          }
-        }
-
-        if (cell.type !== '.') {
-
-        }
-      }
-    }
-    window.requestAnimationFrame(() => this.draw());
   }
 
   createParticle(gridx, gridy) {
@@ -741,9 +645,18 @@ class App {
 
   setAreaDir(sym, targetDir) {
     
-    //TODO: set state of cell direction
-    const areaDiv = this.getAreaElementFromSym(sym);
     const areaIndex = this.symbolIndexes[sym];
+    const areaType = AREAS[areaIndex].type;
+    if (areaType !== 'cell' && areaType !== 'spawn') {
+      return;
+    }
+    const state = this.state.areas[areaIndex];
+    if (state.shield !== undefined && state.shield > 0) {
+      return;
+    }
+
+    const areaDiv = this.getAreaElementFromSym(sym);
+    state.dir = targetDir;
 
     this.arrowDirs.forEach( dir => {
       this.UI[`div_area_arrow_${areaIndex}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';

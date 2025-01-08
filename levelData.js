@@ -33,7 +33,7 @@ const AREAS_GRID = [
 ];
 
 const AREAS = [
-  { sym: '!', type: 'boss', val: 10 },
+  { sym: '!', type: 'cell', val: 1e308 },
   { sym: 'a', type: 'spawn', val: 10 },
   { sym: 'b', type: 'cell', val: 10 },
   { sym: 'c', type: 'cell', val: 10 },
