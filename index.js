@@ -40,18 +40,7 @@ TODO:
   use particles to show the flow of power
   add inspiration links to info box
 
-  costs:
-  1: 10 => +1
-  2: 20 => +1
-  ...
-  9: 90 => +1
-  10: 150 => +2
-  11: 200 => +2
-  12: 250 => +2
-  ...
-  24: 850 => +2
-  25: 1500 => +4
-  26: 1750 => +4
+  add area in info box to show details about selected area
   
 
 
@@ -214,11 +203,34 @@ class App {
       });
     });
 
+    this.areas.forEach( (area, i) => {
+      symbolIndexes[area.sym] = i;
+    });
+
+    let sum = 0;
+    AREAS_ORDER.split('').forEach( (sym, i) => {
+      const areaIndex = this.symbolIndexes[sym];
+
+      if (i === 0) {
+        AREAS[areaIndex].val = 1;
+      } else {
+        //scale(1) = 2
+        //scale(74) = 10
+        //y=mx+b
+        //b = y- mx 
+        const slope = (10 - 2) / (74 - 1);
+        const b = 2 - slope * 1;
+        const scale = slope * i + b ;
+        AREAS[areaIndex].val = sum * scale;
+      }
+
+      sum = sum + AREAS[areaIndex].val;
+    });
+
     //have to account for 1px border
     const cellSize = 40 - 2 * 1;
 
     this.areas.forEach( (area, i) => {
-      symbolIndexes[area.sym] = i;
       const eArea = document.createElement('div');
       eArea.id = `div_area_${i}`;
       this.UI[eArea.id] = eArea;
@@ -249,7 +261,6 @@ class App {
       fgDiv.id = fgName;
       fgDiv.classList.add('cellForeground');
       this.UI[fgName] = fgDiv;
-      fgDiv.textContent = '1e2';
 
       eArea.appendChild(fgDiv);
 
@@ -305,8 +316,14 @@ class App {
         case 'cell': {
           areaState.nanites = 0;
           areaState.lock = area.lock ?? 0;
+          //[0,74]
+          const areaOrder = AREAS_ORDER.indexOf(area.sym);
+
+          
+
           areaState.shield = area.val;
 
+          
           switch (areaState.lock) {
             case 1: {
               fgDiv.style.backgroundImage = 'url("silverKey.png")';
@@ -478,7 +495,7 @@ class App {
     //const s = 30 + Math.floor((OOM * 30) / (315 - 120)) * 5;
     //const l = 50;
     //return `hsl(${h},${s}%,${l}%)`;
-    const h = OOM * 300 / 308;
+    const h = (OOM * 300 / 70) % 300;
     const s = 100;
     const l = 50;
     return `hsl(${h},${s}%,${l}%)`;
@@ -552,6 +569,7 @@ class App {
             fgDiv.textContent = this.formatNanitesForArea(state.shield);
             const progressPercent = 100 * state.shield / area.val;
             progDiv.style.width = `${progressPercent}%`;
+            areaContDiv.style.backgroundColor = this.getUnlockedColor(state.shield);
           }
           break;
         }
@@ -674,7 +692,11 @@ class App {
   }
 
   clickArea(sym) {
+    console.log('CLICK AREA:', sym);
     this.selectArea(sym);
+    //const areaIndex = this.symbolIndexes[sym];
+    //const pDiv = this.UI[`div_area_progress_${areaIndex}`];
+    //pDiv.style.backgroundColor = 'red';
 
   }
 
