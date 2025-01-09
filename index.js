@@ -403,7 +403,7 @@ class App {
       const areaDir = this.state.areas[i].dir;
 
       //remove lock image from previously unlocked areas
-      if (this.state.lock === undefined || this.state.lock === 0) {
+      if (this.state.areas[i].lock === undefined || this.state.areas[i].lock === 0) {
         fgDiv.style.backgroundImage = '';
       }
 
