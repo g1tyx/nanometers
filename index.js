@@ -176,6 +176,7 @@ class App {
     this.UI.btnReset.onclick = () => { this.showModal('resetContainer'); }
     this.UI.resetNo.onclick = () => { this.closeModal('resetContainer'); }
     this.UI.resetYes.onclick = () => { this.reset(); }
+    this.UI.winClose.onclick = () => { this.closeModal('winContainer'); }
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
@@ -508,6 +509,10 @@ class App {
                   const nstate = this.state.areas[nindex];
                   if (nstate.shield > 0) {
                     nstate.shield = Math.max(0, nstate.shield - transferVal);
+
+                    if (nsym === '!' && nstate.shield <= 0) {
+                      this.doGameWin();
+                    }
                   } else {
                     nstate.nanites = Math.min(1e308, nstate.nanites + transferVal);
                   }
@@ -519,14 +524,17 @@ class App {
           }
           break;
         }
+        case 'keyg':
         case 'keys': {
           if (state.shield <= 0) {
             //add a key
-            this.state.keysCount += 1;
+            const stateKey = `key${area.type === 'keys' ? 's' : 'g'}Count`;
+            this.state[stateKey] += 1;
             state.bought += 1;
 
             //update key display in infobox
-            this.UI.spanKeyCountS.textContent = this.state.keysCount;
+            const infoId = `spanKeyCount${area.type === 'keys' ? 'S' : 'G'}`;
+            this.UI[infoId].textContent = this.state[stateKey];
 
             //reset shield
             state.shield = this.getKeyVal(area.type) - state.nanites; 
@@ -855,6 +863,14 @@ class App {
     if (action === undefined) {return;}
     evt.preventDefault();
     this.setAreaDir(sym, action);
+  }
+
+  doGameWin() {
+    this.state.endTime = (new Date()).getTime();
+    const playTime = this.state.endTime - this.state.gameStart;
+    this.UI.winPlayTime.textContent = this.remainingToStr(playTime, true);
+    this.showModal('winContainer');
+    this.saveToStorage();
   }
 }
 
