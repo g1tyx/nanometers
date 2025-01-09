@@ -140,3 +140,12 @@ dialog::backdrop {
   background-repeat: no-repeat;
   background-position: left;
 }
+
+.keyPlus {
+  font-size: 16px;
+  vertical-align: top;
+}
+
+.keyCost {
+
+}

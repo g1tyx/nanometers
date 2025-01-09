@@ -92,6 +92,8 @@ class App {
       rcv: 10,
       atk: 10,
       def: 10,
+      keysCount: 0,
+      keygCount: 0,
       areas: {}
     };
 
@@ -174,6 +176,9 @@ class App {
     this.UI.btnReset.onclick = () => { this.showModal('resetContainer'); }
     this.UI.resetNo.onclick = () => { this.closeModal('resetContainer'); }
     this.UI.resetYes.onclick = () => { this.reset(); }
+
+    this.UI.spanKeyCountS.textContent = this.state.keysCount;
+    this.UI.spanKeyCountG.textContent = this.state.keygCount;
   }
 
   initGrid() {
@@ -188,6 +193,7 @@ class App {
     this.areaLocations = areaLocations;
     this.locationAreas = locationAreas;
     this.symbolIndexes = symbolIndexes;
+    this.specialIndexes = {};
 
     this.areasGrid.forEach( (row, y) => {
       row.split('').forEach( (sym, x) => {
@@ -205,6 +211,9 @@ class App {
 
     this.areas.forEach( (area, i) => {
       symbolIndexes[area.sym] = i;
+      if (area.type !== 'cell') {
+        this.specialIndexes[area.type] = i;
+      }
     });
 
     let sum = 0;
@@ -234,7 +243,7 @@ class App {
       const eArea = document.createElement('div');
       eArea.id = `div_area_${i}`;
       this.UI[eArea.id] = eArea;
-      eArea.style.background = area.type === 'cell' ? 'gray' : 'yellow';
+      eArea.style.background = 'gray';
       const info = areaLocations[area.sym];
       eArea.style.gridColumnStart = info.x + 1;
       eArea.style.gridColumnEnd = info.x + info.w + 1;
@@ -247,23 +256,51 @@ class App {
       eArea.setAttribute('tabindex', '-1');
       eArea.onkeydown = (evt) => this.keydownArea(evt, area.sym);
 
-      if (area.type === 'cell') {
-        const eProgress = document.createElement('div');
-        eProgress.id = `div_area_progress_${i}`;
-        this.UI[eProgress.id] = eProgress;
-        eProgress.classList.add('areaProgress');
+      //add progress bar
+      const eProgress = document.createElement('div');
+      eProgress.id = `div_area_progress_${i}`;
+      this.UI[eProgress.id] = eProgress;
+      eProgress.classList.add('areaProgress');
 
-        eArea.appendChild(eProgress);
+      switch (area.type) {
+        case 'rpgp':
+        case 'slot':
+        case 'keys':
+        case 'keyg': {
+          eProgress.style.backgroundColor = 'yellow';
+          break;
+        }
+        case 'spawn': {
+          eProgress.style.width = '0%';
+          break;
+        }
       }
 
+      eArea.appendChild(eProgress);
+      
+      //add fg div
       const fgDiv = document.createElement('div');
       const fgName = `area_fg_${i}`;
       fgDiv.id = fgName;
       fgDiv.classList.add('cellForeground');
       this.UI[fgName] = fgDiv;
 
+      switch (area.type) {
+        case 'keyg':
+        case 'keys': {
+          fgDiv.innerHTML = `
+            <div>
+              <span class='keyPlus'>+</span><img src='${area.type === 'keys' ? 'silver' : 'gold'}Key.png'>
+            </div>
+            <div id='div_${area.type}_cost' class='keyCost'>KEY COST</div>
+          `;
+          break;
+        }
+      }
+
       eArea.appendChild(fgDiv);
 
+      //add arrows
       const pw = cellSize * info.w;
       const ph = cellSize * info.h;
       const arrowWidth = 8; 
@@ -309,6 +346,7 @@ class App {
       });
 
 
+      //set up area state
       const areaState = {
       };
 
@@ -319,10 +357,7 @@ class App {
           //[0,74]
           const areaOrder = AREAS_ORDER.indexOf(area.sym);
 
-          
-
           areaState.shield = area.val;
-
           
           switch (areaState.lock) {
             case 1: {
@@ -340,12 +375,31 @@ class App {
           areaState.nanites = 1;
           areaState.lock = 0;
           areaState.shield = 0;
+          break;
         }
+        case 'keys': {
+          areaState.nanites = 0;
+          areaState.lock = 0;
+          areaState.bought = 0;
+          areaState.shield = 10;
+          areaState.val = 10;
+          break;
+        }
+        case 'keyg': {
+          areaState.nanites = 0;
+          areaState.lock = 0;
+          areaState.bought = 0;
+          areaState.shield = 2e20;
+          areaState.val = 2e20;
+          break;
+        }
+
       }
 
       //overwrite default areaState with saved areaState
       this.state.areas[i] = {...areaState, ...this.state.areas[i]};
 
+      //init arrow displays
       const areaDir = this.state.areas[i].dir;
 
       if (areaDir !== undefined) {
@@ -353,6 +407,7 @@ class App {
       }
 
       container.appendChild(eArea);
+      this.UI[`div_keys_cost`] = document.getElementById(`div_keys_cost`);
     });
   }
 
@@ -453,12 +508,38 @@ class App {
                 });
               }
             }
+            //TODO: this should be a constant, not a scaling factor or the count goes up too fast
             state.nanites += state.nanites * generationRate;
           }
           break;
         }
+        case 'keys': {
+          if (state.shield <= 0) {
+            //add a key
+            this.state.keysCount += 1;
+            state.bought += 1;
+
+            //update key display in infobox
+            this.UI.spanKeyCountS.textContent = this.state.keysCount;
+
+            //reset shield
+            state.shield = this.getKeyVal(area.type) - state.nanites; 
+            state.val = state.shield;
+
+            //set nanites to zero
+            state.nanites = 0;
+          }
+        }
       }
     });
+  }
+
+  getKeyVal(keyType) {
+    const areaIndex = this.specialIndexes[keyType];
+    const boughtKeys = this.state.areas[areaIndex].bought;
+    const base = keyType === 'keys' ? 10 : 2e20;
+    const growthFactor = 2;
+    return base * Math.pow(growthFactor, boughtKeys);
   }
 
   update() {
@@ -578,6 +659,12 @@ class App {
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
           break;
         }
+        case 'keys': {
+          const progressPercent = 100 * state.shield / state.val;
+          progDiv.style.width = `${progressPercent}%`;
+          const costDiv = this.UI['div_keys_cost'];
+          costDiv.textContent = this.formatNanitesForArea(state.shield);
+        }
       }
     });
 
@@ -691,8 +778,37 @@ class App {
 
   }
 
+  attemptUnlock(sym) {
+    const areaIndex = this.symbolIndexes[sym];
+    const state = this.state.areas[areaIndex];
+    if (state.lock !== undefined && state.lock > 0) {
+      if (state.lock === 1) {
+        if (this.state.keysCount > 0) {
+          this.state.keysCount -= 1;
+          state.lock = 0;
+          //remove key symbol from area
+          this.UI[`area_fg_${areaIndex}`].style.backgroundImage = '';
+          //update info box
+          this.UI.spanKeyCountS.textContent = this.state.keysCount;
+        }
+      } else {
+        if (this.state.keygCount > 0) {
+          this.state.keygCount -= 1;
+          state.lock = 0;
+          //remove key symbol from area
+          this.UI[`area_fg_${areaIndex}`].style.backgroundImage = '';
+          //update info box
+          this.UI.spanKeyCountG.textContent = this.state.keygCount;
+        }
+      }
+    }
+  }
+
   clickArea(sym) {
     console.log('CLICK AREA:', sym);
+   
+    this.attemptUnlock(sym);
+
     this.selectArea(sym);
     //const areaIndex = this.symbolIndexes[sym];
     //const pDiv = this.UI[`div_area_progress_${areaIndex}`];
