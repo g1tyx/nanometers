@@ -59,6 +59,10 @@ dialog::backdrop {
   filter: grayscale(0.7);
 }
 
+#divCurrency {
+  font-size: 20px;
+}
+
 #gridContainer {
   display: grid;
   width: 808px;
@@ -83,6 +87,8 @@ dialog::backdrop {
   left: 0;
   font-size: 20pt;
   user-select: none;
+  color: white;
+  -webkit-text-stroke: 0.5px black;
 }
 
 .gridCellContainer {

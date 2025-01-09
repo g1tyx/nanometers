@@ -10,37 +10,21 @@ some details here:
 https://jayisgames.com/review/parameters.php
 
 TODO:
-  Nanospread is released under MIT license
-  some cells are just resources and don't fight back
-  some cells do fight back and regen health
-  give cells a strength and power and owned
-  make power transfer between owned cells
-  make power attack strength of unowned cells
-  unselect all cells if you click outside the grid
-  player attack power is function of attack strength of the attacking cell
   player can set keybinds
   use won exp to improve 
     attack power, 
     transfer speed,
     generator speed
-  locked cells should display their strength, light gray on green 
-  unlocked cells display strength and level
-  cells create their own nanites each tick
-  cells transfer out nanites each tick
-  cells transfer in nanites each tick
   randomly collect letters in ?some word? (originally NEKOGAMES) to unlock
     a secret room...that does what?
-  need multiple maps
   all cells get upgraded together
     act
     atk
     def
-  attacking works similar to risk
-  need smaller grid but make areas be able to span multiple cells
   use particles to show the flow of power
   add inspiration links to info box
-
   add area in info box to show details about selected area
+  drop points and letters when cell shield breaks
   
 
 
@@ -84,6 +68,7 @@ class App {
 
     this.state = {
       lastTime: (new Date()).getTime(),
+      cash: 0,
       exp: 0,
       life: 100,
       lifeMax: 100,
@@ -180,6 +165,7 @@ class App {
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
+    this.UI.cash.textContent = this.formatCash();
   }
 
   initGrid() {
@@ -484,7 +470,7 @@ class App {
   //this happens once per tick period which starts at 1 per second
   tick() {
  
-    const generationRate = 0.01;
+    const generationRate = 1;
     const recoveryRate = 0.01;
     const transferRate = 0.01;
 
@@ -510,8 +496,12 @@ class App {
                   if (nstate.shield > 0) {
                     nstate.shield = Math.max(0, nstate.shield - transferVal);
 
-                    if (nsym === '!' && nstate.shield <= 0) {
-                      this.doGameWin();
+                    if (nstate.shield <= 0 && AREAS[nindex].type === 'cell') {
+                      if (nsym === '!') {
+                        this.doGameWin();
+                      } else {
+                        this.doAreaWin(nsym);
+                      }
                     }
                   } else {
                     nstate.nanites = Math.min(1e308, nstate.nanites + transferVal);
@@ -519,8 +509,7 @@ class App {
                 });
               }
             }
-            //TODO: this should be a constant, not a scaling factor or the count goes up too fast
-            state.nanites += state.nanites * generationRate;
+            state.nanites += generationRate;
           }
           break;
         }
@@ -696,18 +685,32 @@ class App {
 
   }
 
-  createParticle(gridx, gridy) {
+  formatCash() {
+    return this.state.cash.toExponential(1);
+  }
+
+  createCashParticle(sym, value) {
     const particle = document.createElement('div');
     particle.classList.add('particle');
-    particle.innerText = '$*X#'[Math.floor(Math.random() * 4)];
+    particle.innerText = '\u00a4'; //currency symbol. looks kinda like a nanobot...
+
+    //chance to generate a gold particle
+    const pBonus = 0.1;
+    if (Math.random() < pBonus) {
+      value = value * 2;
+      particle.style.color = 'gold';
+    }
+
     document.body.appendChild(particle);
 
     particle.onmouseenter = (evt) => {
-      console.log('move');
+      console.log('move', value);
       const curTime = (new Date()).getTime();
       const deltaTime = curTime - particle.startTime;
       if (deltaTime > 500) {
         particle.remove();
+        this.state.cash += value;
+        this.UI.cash.textContent = this.formatCash();
       }
     };
 
@@ -716,12 +719,13 @@ class App {
     particle.style.width = '10px';
     particle.style.height = '10px';
 
-    const rect = this.UI[`gridCellBackground${gridx}_${gridy}`].getBoundingClientRect();
-    const x = rect.left;
-    const y = rect.top;
+    const areaIndex = this.symbolIndexes[sym];
+    const rect = this.UI[`area_fg_${areaIndex}`].getBoundingClientRect();
+    const x = rect.left + rect.width / 2 + 2 * window.scrollX;
+    const y = rect.top + rect.height / 2 + 2 * window.scrollY;
 
-    let x0 = rect.left;
-    let y0 = rect.top;
+    let x0 = rect.left + rect.width / 2 + window.scrollX;
+    let y0 = rect.top + rect.height / 2 + window.scrollY;
     const frames = [];
     let fx = x0;
     let fy = y0;
@@ -871,6 +875,17 @@ class App {
     this.UI.winPlayTime.textContent = this.remainingToStr(playTime, true);
     this.showModal('winContainer');
     this.saveToStorage();
+  }
+
+  doAreaWin(sym) {
+    const areaIndex = this.symbolIndexes[sym];
+    const areaVal = AREAS[areaIndex].val;
+    const minP = 2;
+    const maxP = 6;
+    const pCount = minP + Math.floor(Math.random() * (maxP - minP + 1));
+    for (let i = 0; i < pCount; i++) {
+      this.createCashParticle(sym, areaVal / pCount);
+    }
   }
 }
 
