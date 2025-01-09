@@ -402,12 +402,18 @@ class App {
       //init arrow displays
       const areaDir = this.state.areas[i].dir;
 
+      //remove lock image from previously unlocked areas
+      if (this.state.lock === undefined || this.state.lock === 0) {
+        fgDiv.style.backgroundImage = '';
+      }
+
       if (areaDir !== undefined) {
         this.setAreaDir(area.sym, areaDir);
       }
 
       container.appendChild(eArea);
       this.UI[`div_keys_cost`] = document.getElementById(`div_keys_cost`);
+      this.UI[`div_keyg_cost`] = document.getElementById(`div_keyg_cost`);
     });
   }
 
@@ -659,11 +665,13 @@ class App {
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
           break;
         }
+        case 'keyg':
         case 'keys': {
           const progressPercent = 100 * state.shield / state.val;
           progDiv.style.width = `${progressPercent}%`;
-          const costDiv = this.UI['div_keys_cost'];
+          const costDiv = this.UI[`div_${area.type}_cost`];
           costDiv.textContent = this.formatNanitesForArea(state.shield);
+          break;
         }
       }
     });
