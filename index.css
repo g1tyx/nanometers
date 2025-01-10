@@ -34,6 +34,7 @@ dialog::backdrop {
 #sidebarContainer {
   background-color: white;
   padding: 5px;
+  width: 425px;
 }
 
 #logoRow {
@@ -63,10 +64,16 @@ dialog::backdrop {
   font-size: 20px;
 }
 
+#divStatsContainer {
+  display: grid;
+  grid-template-columns: 95px 1fr 1fr 1fr auto;
+  padding-bottom: 5px;
+}
+
 #areaInfoContainer {
   display: grid;
   grid-template-columns: auto 1fr;
-  justify-items: end;
+  grid-column-gap: 10px;
   box-shadow: inset 1px 1px 5px 0px black;
   width 100%;
   padding: 6px;

@@ -18,13 +18,15 @@ TODO:
   randomly collect letters in ?some word? (originally NEKOGAMES) to unlock
     a secret room...that does what?
   all cells get upgraded together
-    act
-    atk
-    def
-  use particles to show the flow of power
-  add inspiration links to info box
-  add area in info box to show details about selected area
+    increase generation rate
+    decrease shield recovery rate
+    increase transfer rate...maybe scale output not not scale deduction from transferring area?
   drop points and letters when cell shield breaks
+  add sound effects
+  add background sound
+  add shake
+  don't let particles get lost on reload
+  create some way of translating area IDs to better names for display
   
 
 
@@ -57,6 +59,7 @@ class App {
     this.gridSize = 20;
     this.initUI();
     this.initGrid();
+    this.updateStatsDisplay();
 
     setInterval(() => this.update(), 1000/60);
     setInterval(() => this.saveToStorage(), 5 * 1000);
@@ -69,14 +72,9 @@ class App {
     this.state = {
       lastTime: (new Date()).getTime(),
       cash: 0,
-      exp: 0,
-      life: 100,
-      lifeMax: 100,
-      act: 50,
-      actMax: 50,
-      rcv: 10,
-      atk: 10,
-      def: 10,
+      genCount: 0,
+      transCount: 0,
+      recCount: 0,
       keysCount: 0,
       keygCount: 0,
       areas: {}
@@ -162,6 +160,9 @@ class App {
     this.UI.resetNo.onclick = () => { this.closeModal('resetContainer'); }
     this.UI.resetYes.onclick = () => { this.reset(); }
     this.UI.winClose.onclick = () => { this.closeModal('winContainer'); }
+    this.UI.statsGenBuy.onclick = () => { this.buyGen(); }
+    this.UI.statsTransBuy.onclick = () => { this.buyTrans(); }
+    this.UI.statsRecBuy.onclick = () => { this.buyRec(); }
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
@@ -470,14 +471,16 @@ class App {
   //this happens once per tick period which starts at 1 per second
   tick() {
  
-    const generationRate = 1;
-    const recoveryRate = 0.01;
-    const transferRate = 0.01;
+    const generationRate = this.getGenValue(this.state.genCount);
+    const transferRate = this.getTransValue(this.state.transCount);
+    const recoveryRate = this.getRecValue(this.state.recCount);
 
    
     this.generation = (new Array(this.areas.length)).fill(0);
     this.incoming = (new Array(this.areas.length)).fill(0);
     this.outgoing = (new Array(this.areas.length)).fill(0);
+
+    this.totalNanites = 0;
 
 
     this.areas.forEach( (area, i) => {
@@ -521,6 +524,7 @@ class App {
               }
             }
             state.nanites += generationRate;
+            this.totalNanites += state.nanites;
             this.generation[i] += generationRate;
           }
           break;
@@ -693,6 +697,10 @@ class App {
       this.UI.spanPlayTime.textContent = this.remainingToStr(this.state.endTime - this.state.gameStart, true);
     }
 
+    this.UI.statsGenBuy.disabled = this.getGenCost() > this.state.cash;
+    this.UI.statsTransBuy.disabled = this.getTransCost() > this.state.cash;
+    this.UI.statsRecBuy.disabled = this.getRecCost() > this.state.cash;
+
     //update area info box
     if (this.selectedArea === undefined) {
       this.UI.areaInfoID.textContent = 'None';
@@ -705,7 +713,8 @@ class App {
       const selectedState = this.state.areas[selectedIndex]
       this.UI.areaInfoID.textContent = this.selectedArea;
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold'][selectedState.lock];
-      this.UI.areaInfoValue.textContent = (selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
+      this.UI.areaInfoValue.textContent = (selectedState.nanites - selectedState.shield).toExponential(3);
+      //(selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
       this.UI.areaInfoGen.textContent = this.generation[selectedIndex].toExponential(3);
       this.UI.areaInfoIncoming.textContent = this.incoming[selectedIndex].toExponential(3);
       this.UI.areaInfoOutgoing.textContent = this.outgoing[selectedIndex].toExponential(3);
@@ -914,6 +923,71 @@ class App {
     for (let i = 0; i < pCount; i++) {
       this.createCashParticle(sym, areaVal / pCount);
     }
+  }
+
+  getGenValue(count) {
+    return Math.pow(2, count);
+  }
+
+  getTransValue(count) {
+    return 0.01 * Math.pow(2, count);
+  }
+
+  getRecValue(count) {
+    return 0.01 * Math.pow(0.9, count);
+  }
+
+  getGenCost() {
+    return 1e3 * Math.pow(1e1, this.state.genCount);
+  }
+
+  getTransCost() {
+    return 1e6 * Math.pow(1e2, this.state.transCount);
+  }
+
+  getRecCost() {
+    return 1e9 * Math.pow(1e3, this.state.recCount);
+  }
+
+  buyGen() {
+    const cost = this.getGenCost();
+    if (cost <= this.state.cash) {
+      this.state.cash -= cost;
+      this.state.genCount += 1;
+      this.updateStatsDisplay();
+    }
+  }
+
+  buyTrans() {
+    const cost = this.getTransCost();
+    if (cost <= this.state.cash) {
+      this.state.cash -= cost;
+      this.state.transCount += 1;
+      this.updateStatsDisplay();
+    }
+  }
+
+  buyRec() {
+    const cost = this.getRecCost();
+    if (cost <= this.state.cash) {
+      this.state.cash -= cost;
+      this.state.recCount += 1;
+      this.updateStatsDisplay();
+    }
+  }
+
+  updateStatsDisplay() {
+    this.UI.statsGenValue.textContent = this.getGenValue(this.state.genCount).toExponential(3);
+    this.UI.statsGenNext.textContent =  this.getGenValue(this.state.genCount + 1).toExponential(3);
+    this.UI.statsGenCost.textContent = this.getGenCost().toExponential(3);
+
+    this.UI.statsTransValue.textContent = this.getTransValue(this.state.transCount).toExponential(3);
+    this.UI.statsTransNext.textContent =  this.getTransValue(this.state.transCount + 1).toExponential(3);
+    this.UI.statsTransCost.textContent = this.getTransCost().toExponential(3);
+
+    this.UI.statsRecValue.textContent = this.getRecValue(this.state.recCount).toExponential(3);
+    this.UI.statsRecNext.textContent =  this.getRecValue(this.state.recCount + 1).toExponential(3);
+    this.UI.statsRecCost.textContent = this.getRecCost().toExponential(3);
   }
 }
 

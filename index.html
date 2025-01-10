@@ -35,16 +35,21 @@
           <img src='./goldKey.png'> <span id='spanKeyCountG'>0</span> 
           &#x00a4;<span id='cash'>0</span> 
         </div>
-        <table>
-          <tr><td>EXP</td><td><span class='sidebarProgressContainer' id='spcexp'></span></td></tr>
-          <tr><td>LIFE</td><td><span class='sidebarProgressContainer' id='spclife'></span></td></tr>
-          <tr><td>ACT</td><td><span class='sidebarProgressContainer' id='spcact'></span></td></tr>
-        </table>
-        <table>
-          <tr><td><button id='btnBuyRcv'>+</button></td><td>RCV</td><td id='rcvVal'></td></tr>
-          <tr><td><button id='btnBuyAtk'>+</button></td><td>ATK</td><td id='atkVal'></td></tr>
-          <tr><td><button id='btnBuyDef'>+</button></td><td>DEF</td><td id='defVal'></td></tr>
-        </table>
+        <div id='divStatsContainer'>
+          <div></div><div>Value</div><div>Next Value</div><div>Cost</div><div></div>
+          <div>Generation</div><div id='statsGenValue'></div><div id='statsGenNext'></div><div id='statsGenCost'></div><div><button id='statsGenBuy'>Buy</button></div>
+          <div>Transfer</div><div id='statsTransValue'></div><div id='statsTransNext'></div><div id='statsTransCost'></div><div><button id='statsTransBuy'>Buy</button></div>
+          <div>Recovery</div><div id='statsRecValue'></div><div id='statsRecNext'></div><div id='statsRecCost'></div><div><button id='statsRecBuy'>Buy</button></div>
+        </div>
+        <div id='areaInfoContainer'>
+          <div>Area ID</div><div id='areaInfoID'></div>
+          <div>Lock</div><div id='areaInfoLock'></div>
+          <div>Value</div><div id='areaInfoValue'></div>
+          <div>Generation</div><div id='areaInfoGen'></div>
+          <div>Incoming</div><div id='areaInfoIncoming'></div>
+          <div>Outgoing</div><div id='areaInfoOutgoing'></div>
+          <div>Net Increase</div><div id='areaInfoNet'></div>
+        </div>
         <div>Play time: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
         <div id='buttonRow'>
           <button id='btnHelp'>Help</button>
@@ -58,18 +63,16 @@
         </div>
         <div><a href="https://discord.gg/r-incremental-games-256804627310182401">r/incremental_games Discord</a></div>
         <div>
-          If you enjoy this open source game, please consider<br>
-          making a donation to your favorite charity and letting<br>
+          If you enjoy this open source game, please consider
+          making a donation to your favorite charity and letting
           me know about it on discord.
         </div>
-        <div id='areaInfoContainer'>
-          <div>Area ID</div><div id='areaInfoID'></div>
-          <div>Lock</div><div id='areaInfoLock'></div>
-          <div>Value</div><div id='areaInfoValue'></div>
-          <div>Generation</div><div id='areaInfoGen'></div>
-          <div>Incoming</div><div id='areaInfoIncoming'></div>
-          <div>Outgoing</div><div id='areaInfoOutgoing'></div>
-          <div>Net Increase</div><div id='areaInfoNet'></div>
+        <div>
+          Please consider playing the games that inspired this one:
+          <ul>
+            <li><a href='https://stopsign.github.io/Nanospread/'><b>Nano</b>spread</a></li>
+            <li><a href='http://nekogames.jp/g2.html?gid=PRM'>Para<b>meters</b></a></li>
+          </ul>
         </div>
       </div>
     </div>
