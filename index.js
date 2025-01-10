@@ -474,6 +474,12 @@ class App {
     const recoveryRate = 0.01;
     const transferRate = 0.01;
 
+   
+    this.generation = (new Array(this.areas.length)).fill(0);
+    this.incoming = (new Array(this.areas.length)).fill(0);
+    this.outgoing = (new Array(this.areas.length)).fill(0);
+
+
     this.areas.forEach( (area, i) => {
       const state = this.state.areas[i];
       switch (area.type) {
@@ -483,18 +489,23 @@ class App {
         case 'cell': {
           if (state.shield > 0) {
             //recover shield
-            state.shield = Math.min(area.val, state.shield + recoveryRate * area.val);
+            const recovery = recoveryRate * area.val;
+            state.shield = Math.min(area.val, state.shield + recovery);
+            this.generation[i] -= recovery;
           } else {
             if (state.dir !== undefined) {
               const neighbors = this.getAreaNeighbors(area.sym, state.dir);
               if (neighbors.length > 0) {
-                const transferVal = state.nanites * transferRate / neighbors.length;
-                state.nanites -= transferVal;
+                const transferOutVal = state.nanites * transferRate;
+                const transferInVal = transferOutVal / neighbors.length;
+                state.nanites -= transferOutVal;
+                this.outgoing[i] += transferOutVal;
                 neighbors.forEach( nsym => {
                   const nindex = this.symbolIndexes[nsym];
                   const nstate = this.state.areas[nindex];
+                  this.incoming[nindex] += transferInVal;
                   if (nstate.shield > 0) {
-                    nstate.shield = Math.max(0, nstate.shield - transferVal);
+                    nstate.shield = Math.max(0, nstate.shield - transferInVal);
 
                     if (nstate.shield <= 0 && AREAS[nindex].type === 'cell') {
                       if (nsym === '!') {
@@ -504,12 +515,13 @@ class App {
                       }
                     }
                   } else {
-                    nstate.nanites = Math.min(1e308, nstate.nanites + transferVal);
+                    nstate.nanites = Math.min(1e308, nstate.nanites + transferInVal);
                   }
                 });
               }
             }
             state.nanites += generationRate;
+            this.generation[i] += generationRate;
           }
           break;
         }
@@ -681,6 +693,25 @@ class App {
       this.UI.spanPlayTime.textContent = this.remainingToStr(this.state.endTime - this.state.gameStart, true);
     }
 
+    //update area info box
+    if (this.selectedArea === undefined) {
+      this.UI.areaInfoID.textContent = 'None';
+      this.UI.areaInfoLock.textContent = '';
+      this.UI.areaInfoValue.textContent = '';
+      this.UI.areaInfoIncoming.textContent = '';
+      this.UI.areaInfoOutgoing.textContent = '';
+    } else {
+      const selectedIndex = this.symbolIndexes[this.selectedArea];
+      const selectedState = this.state.areas[selectedIndex]
+      this.UI.areaInfoID.textContent = this.selectedArea;
+      this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold'][selectedState.lock];
+      this.UI.areaInfoValue.textContent = (selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
+      this.UI.areaInfoGen.textContent = this.generation[selectedIndex].toExponential(3);
+      this.UI.areaInfoIncoming.textContent = this.incoming[selectedIndex].toExponential(3);
+      this.UI.areaInfoOutgoing.textContent = this.outgoing[selectedIndex].toExponential(3);
+      this.UI.areaInfoNet.textContent = (this.generation[selectedIndex] + this.incoming[selectedIndex] - this.outgoing[selectedIndex]).toExponential(3);
+    }
+
     window.requestAnimationFrame(() => this.draw());
 
   }
@@ -830,9 +861,6 @@ class App {
     this.attemptUnlock(sym);
 
     this.selectArea(sym);
-    //const areaIndex = this.symbolIndexes[sym];
-    //const pDiv = this.UI[`div_area_progress_${areaIndex}`];
-    //pDiv.style.backgroundColor = 'red';
 
   }
 

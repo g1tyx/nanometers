@@ -63,6 +63,19 @@ dialog::backdrop {
   font-size: 20px;
 }
 
+#areaInfoContainer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  justify-items: end;
+  box-shadow: inset 1px 1px 5px 0px black;
+  width 100%;
+  padding: 6px;
+}
+
+#areaInfoTable {
+  width: 100%;
+}
+
 #gridContainer {
   display: grid;
   width: 808px;
