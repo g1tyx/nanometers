@@ -26,7 +26,11 @@ TODO:
   add background sound
   add shake
   don't let particles get lost on reload
-  create some way of translating area IDs to better names for display
+  add start screen to force user to interact and enable audio
+  sanitize area names to not imply function
+  adjust special area names to match special area
+  when you get all the letters of nanometers you can lock cells (get a free key when you do it)
+  make letter particles look like the letters in the info box
   
 
 
@@ -55,11 +59,14 @@ class App {
 
 
     this.arrowDirs = ['left', 'right', 'up', 'down'];
+    this.letterColors = ['hsl(347, 62%, 54%)', 'hsl(112, 62%, 54%)', 'hsl(185, 62%, 54%)', 'hsl(251, 62%, 54%)'];
     this.selectedCell = undefined;
     this.gridSize = 20;
     this.initUI();
     this.initGrid();
     this.updateStatsDisplay();
+    this.updateLettersDisplay();
+    this.initAudio();
 
     setInterval(() => this.update(), 1000/60);
     setInterval(() => this.saveToStorage(), 5 * 1000);
@@ -77,7 +84,8 @@ class App {
       recCount: 0,
       keysCount: 0,
       keygCount: 0,
-      areas: {}
+      areas: {},
+      letters: [0,0,0,0,0,0,0,0,0,0]
     };
 
     if (rawState !== null) {
@@ -167,6 +175,7 @@ class App {
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
     this.UI.cash.textContent = this.formatCash();
+
   }
 
   initGrid() {
@@ -215,10 +224,13 @@ class App {
         //scale(74) = 10
         //y=mx+b
         //b = y- mx 
+        /*
         const slope = (10 - 2) / (74 - 1);
         const b = 2 - slope * 1;
         const scale = slope * i + b ;
         AREAS[areaIndex].val = sum * scale;
+        */
+        AREAS[areaIndex].val = Math.pow(2, i);
       }
 
       sum = sum + AREAS[areaIndex].val;
@@ -377,8 +389,8 @@ class App {
           areaState.nanites = 0;
           areaState.lock = 0;
           areaState.bought = 0;
-          areaState.shield = 2e20;
-          areaState.val = 2e20;
+          areaState.shield = 1e10;
+          areaState.val = 1e10;
           break;
         }
 
@@ -403,6 +415,19 @@ class App {
       this.UI[`div_keys_cost`] = document.getElementById(`div_keys_cost`);
       this.UI[`div_keyg_cost`] = document.getElementById(`div_keyg_cost`);
     });
+  }
+
+  initAudio() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    this.audioContext = new AudioContext();
+    this.audioElements = [];
+    'pickupCoin,pickupCoinHigh'.split(',').forEach( audioName => {
+      const audioElement = new Audio(`./${audioName}.wav`);
+      const track = this.audioContext.createMediaElementSource(audioElement);
+      track.connect(this.audioContext.destination);
+      this.audioElements.push(audioElement);
+    });
+    //TODO: need to call this.audioContext.resume() after user has interacted with the page
   }
 
   getAreaNeighbors(sym, dir) {
@@ -556,7 +581,7 @@ class App {
   getKeyVal(keyType) {
     const areaIndex = this.specialIndexes[keyType];
     const boughtKeys = this.state.areas[areaIndex].bought;
-    const base = keyType === 'keys' ? 10 : 2e20;
+    const base = keyType === 'keys' ? 10 : 1e10;
     const growthFactor = 2;
     return base * Math.pow(growthFactor, boughtKeys);
   }
@@ -710,8 +735,9 @@ class App {
       this.UI.areaInfoOutgoing.textContent = '';
     } else {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
-      const selectedState = this.state.areas[selectedIndex]
-      this.UI.areaInfoID.textContent = this.selectedArea;
+      const selectedState = this.state.areas[selectedIndex];
+      const areaName = AREAS_NAMES[selectedIndex];
+      this.UI.areaInfoID.textContent = areaName[0].toUpperCase() + areaName.substr(1);
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold'][selectedState.lock];
       this.UI.areaInfoValue.textContent = (selectedState.nanites - selectedState.shield).toExponential(3);
       //(selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
@@ -729,17 +755,24 @@ class App {
     return this.state.cash.toExponential(1);
   }
 
-  createCashParticle(sym, value) {
+  createParticle(sym, type, value) {
     const particle = document.createElement('div');
     particle.classList.add('particle');
-    particle.innerText = '\u00a4'; //currency symbol. looks kinda like a nanobot...
 
-    //chance to generate a gold particle
-    const pBonus = 0.1;
-    if (Math.random() < pBonus) {
-      value = value * 2;
-      particle.style.color = 'gold';
+    if (type === 'cash') {
+      particle.innerText = '\u00a4'; //currency symbol. looks kinda like a nanobot...
+      //chance to generate a gold particle
+      const pBonus = 0.1;
+      if (Math.random() < pBonus) {
+        value = value * 2;
+        particle.style.color = 'gold';
+      }
+    } else {
+      particle.innerText = 'NANOMETERS'[value];
+      particle.classList.add('particleLetters');
+      particle.style.backgroundColor = this.letterColors[value % 4];
     }
+
 
     document.body.appendChild(particle);
 
@@ -749,15 +782,24 @@ class App {
       const deltaTime = curTime - particle.startTime;
       if (deltaTime > 500) {
         particle.remove();
-        this.state.cash += value;
-        this.UI.cash.textContent = this.formatCash();
+        if (type === 'cash') {
+          this.state.cash += value;
+          this.UI.cash.textContent = this.formatCash();
+        } else {
+          this.state.letters[value] = 1;
+          this.updateLettersDisplay();
+        }
+        //TODO: fix this so the 1 element plays for the gold particle
+        //TODO: fix this so more than 1 can play at the same time
+        if (Math.random() > 0.5) {
+          this.audioElements[0].play();
+        } else {
+          this.audioElements[1].play();
+        }
       }
     };
 
     particle.startTime = (new Date()).getTime();
-
-    particle.style.width = '10px';
-    particle.style.height = '10px';
 
     const areaIndex = this.symbolIndexes[sym];
     const rect = this.UI[`area_fg_${areaIndex}`].getBoundingClientRect();
@@ -830,7 +872,7 @@ class App {
     }
 
     const areaDiv = this.getAreaElementFromSym(sym);
-    state.dir = targetDir;
+    state.dir = targetDir !== 'none' ? targetDir : undefined;
 
     this.arrowDirs.forEach( dir => {
       this.UI[`div_area_arrow_${areaIndex}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
@@ -898,7 +940,8 @@ class App {
       ArrowUp: 'up',
       ArrowDown: 'down',
       ArrowLeft: 'left',
-      ArrowRight: 'right'
+      ArrowRight: 'right',
+      Escape: 'none'
     };
     const action = keyMap[key];
     if (action === undefined) {return;}
@@ -921,8 +964,10 @@ class App {
     const maxP = 6;
     const pCount = minP + Math.floor(Math.random() * (maxP - minP + 1));
     for (let i = 0; i < pCount; i++) {
-      this.createCashParticle(sym, areaVal / pCount);
+      this.createParticle(sym, 'cash', areaVal / pCount);
     }
+    const letterIndex = Math.floor(Math.random() * 10);
+    this.createParticle(sym, 'letter', letterIndex);
   }
 
   getGenValue(count) {
@@ -930,6 +975,7 @@ class App {
   }
 
   getTransValue(count) {
+    //TODO: this must not go over 100%
     return 0.01 * Math.pow(2, count);
   }
 
@@ -938,15 +984,15 @@ class App {
   }
 
   getGenCost() {
-    return 1e3 * Math.pow(1e1, this.state.genCount);
+    return 1e2 * Math.pow(1e1, this.state.genCount);
   }
 
   getTransCost() {
-    return 1e6 * Math.pow(1e2, this.state.transCount);
+    return 1e4 * Math.pow(1e2, this.state.transCount);
   }
 
   getRecCost() {
-    return 1e9 * Math.pow(1e3, this.state.recCount);
+    return 1e6 * Math.pow(1e3, this.state.recCount);
   }
 
   buyGen() {
@@ -988,6 +1034,14 @@ class App {
     this.UI.statsRecValue.textContent = this.getRecValue(this.state.recCount).toExponential(3);
     this.UI.statsRecNext.textContent =  this.getRecValue(this.state.recCount + 1).toExponential(3);
     this.UI.statsRecCost.textContent = this.getRecCost().toExponential(3);
+  }
+
+  updateLettersDisplay() {
+    this.state.letters.forEach( (v, i) => {
+      const e = this.UI[`nd${i}`];
+      e.style.backgroundColor = this.letterColors[i % 4];
+      e.style.filter = v === 1 ? 'none' : 'blur(3px) grayscale(1)';
+    });
   }
 }
 

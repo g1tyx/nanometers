@@ -54,10 +54,11 @@ dialog::backdrop {
 
 .nanometersDisplay {
   display: inline-block;
-  background: hsl(0, 0%, 79%);
+  background-color: hsl(0, 0%, 79%);
   width: 16px;
   text-align: center;
-  filter: grayscale(0.7);
+  filter: blur(3px) grayscale(1);
+  outline: 1px solid black;
 }
 
 #divCurrency {
@@ -109,6 +110,17 @@ dialog::backdrop {
   user-select: none;
   color: white;
   -webkit-text-stroke: 0.5px black;
+  filter: drop-shadow(3px 3px 3px hsla(0, 0%, 0%, 0.4));
+}
+
+.particleLetters {
+  width: 16px;
+  height: auto;
+  font-size: 16px;
+  text-align: center;
+  color: black;
+  -webkit-text-stroke: 0px currentColor;
+  outline: 1px solid black;
 }
 
 .gridCellContainer {
