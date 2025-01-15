@@ -32,12 +32,14 @@ dialog::backdrop {
 }
 
 #sidebarContainer {
+  display: grid;
+  grid-template-rows: repeat(8, auto) 1fr;
   background-color: white;
   padding: 5px;
   width: 425px;
 }
 
-#logoRow {
+.logoRow {
   display: grid;
   grid-template-columns: 64px 1fr;
   align-items: center;
@@ -75,9 +77,14 @@ dialog::backdrop {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-column-gap: 10px;
+  align-items: end;
   box-shadow: inset 1px 1px 5px 0px black;
   width 100%;
   padding: 6px;
+}
+
+.areaInfoLabel {
+  text-align: right;
 }
 
 #areaInfoTable {
@@ -186,4 +193,14 @@ dialog::backdrop {
 
 .keyCost {
 
+}
+
+#helpClose {
+  width: 100%;
+  margin-top: 1em;
+}
+
+#divNote {
+  filter: opacity(0.4);
+  align-self: end;
 }

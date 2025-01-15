@@ -15,7 +15,7 @@
     <div id='gameContainer'>
       <div id='gridContainer' class='area'></div>
       <div id='sidebarContainer' class='area'>
-        <div id='logoRow'>
+        <div class='logoRow'>
           <img id='logo' src='./favicon.png'> Nanometers
         </div>
         <div>
@@ -36,49 +36,60 @@
           &#x00a4;<span id='cash'>0</span> 
         </div>
         <div id='divStatsContainer'>
-          <div></div><div>Value</div><div>Next Value</div><div>Cost</div><div></div>
-          <div>Generation</div><div id='statsGenValue'></div><div id='statsGenNext'></div><div id='statsGenCost'></div><div><button id='statsGenBuy'>Buy</button></div>
-          <div>Transfer</div><div id='statsTransValue'></div><div id='statsTransNext'></div><div id='statsTransCost'></div><div><button id='statsTransBuy'>Buy</button></div>
-          <div>Recovery</div><div id='statsRecValue'></div><div id='statsRecNext'></div><div id='statsRecCost'></div><div><button id='statsRecBuy'>Buy</button></div>
+          <div></div><div>&#x1f4aa;</div><div>&#x23ed;&#xfe0f; &#x1f4aa;</div><div>&#x1f4b8;</div><div></div>
+          <div>&#x2795;&#x1fab2;</div><div id='statsGenValue'></div><div id='statsGenNext'></div><div id='statsGenCost'></div><div><button id='statsGenBuy'>&#x1f4b8;</button></div>
+          <div>&#x1f69a;</div><div id='statsTransValue'></div><div id='statsTransNext'></div><div id='statsTransCost'></div><div><button id='statsTransBuy'>&#x1f4b8;</button></div>
+          <div>&#x1f691;</div><div id='statsRecValue'></div><div id='statsRecNext'></div><div id='statsRecCost'></div><div><button id='statsRecBuy'>&#x1f4b8;</button></div>
         </div>
         <div id='areaInfoContainer'>
-          <div>Area ID</div><div id='areaInfoID'></div>
-          <div>Lock</div><div id='areaInfoLock'></div>
-          <div>Value</div><div id='areaInfoValue'></div>
-          <div>Generation</div><div id='areaInfoGen'></div>
-          <div>Incoming</div><div id='areaInfoIncoming'></div>
-          <div>Outgoing</div><div id='areaInfoOutgoing'></div>
-          <div>Net Increase</div><div id='areaInfoNet'></div>
+          <div class='areaInfoLabel'>&#x1faaa;</div><div id='areaInfoID'></div>
+          <div class='areaInfoLabel'>&#x1f512;</div><div id='areaInfoLock'></div>
+          <div class='areaInfoLabel'>&#x1f4aa;</div><div id='areaInfoValue'></div>
+          <div class='areaInfoLabel'>&#x2795;&#x1fab2;</div><div id='areaInfoGen'></div>
+          <div class='areaInfoLabel'>&#x1f4e5;</div><div id='areaInfoIncoming'></div>
+          <div class='areaInfoLabel'>&#x1f4e4;</div><div id='areaInfoOutgoing'></div>
+          <div class='areaInfoLabel'>&#x1f4c8;</div><div id='areaInfoNet'></div>
+          <div class='areaInfoLabel'>&#x2b06;&#xfe0f;</div><div id='areaInfoUpgrade'><button id='areaInfoUpgradeButton'></button></div>
         </div>
-        <div>Play time: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
+        <div>&#x1f3ae; &#x23f1;&#xfe0f;: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
         <div id='buttonRow'>
-          <button id='btnHelp'>Help</button>
-          <button id='btnImpExp'>Import/Export</button>
-          <button id='btnReset'>Reset</button>
+          <button id='btnHelp'>&#x2753;</button>
+          <button id='btnImpExp'>&#x2195;&#xfe0f;</button>
+          <button id='btnReset'>&#x1f195;</button>
         </div>
         <div>
-          <input id='chkAmbient' type='checkbox' checked>Ambient 
-          <input id='chkSFX' type='checkbox' checked>SFX
-          <input id='chkShake' type='checkbox' checked>Shake
+          <input id='chkAmbient' type='checkbox' checked>&#x1f3b5; 
+          <input id='chkSFX' type='checkbox' checked>&#x1f50a;
+          <input id='chkShake' type='checkbox' checked>&#x1fae8;
         </div>
-        <div><a href="https://discord.gg/r-incremental-games-256804627310182401">r/incremental_games Discord</a></div>
-        <div>
-          If you enjoy this open source game, please consider
-          making a donation to your favorite charity and letting
-          me know about it on discord.
-        </div>
-        <div>
-          Please consider playing the games that inspired this one:
-          <ul>
-            <li><a href='https://stopsign.github.io/Nanospread/'><b>Nano</b>spread</a></li>
-            <li><a href='http://nekogames.jp/g2.html?gid=PRM'>Para<b>meters</b></a></li>
-          </ul>
+        <div id='divNote'>
+          <div><a href="https://discord.gg/r-incremental-games-256804627310182401">r/incremental_games Discord</a></div>
+          <div>
+            If you enjoy this open source game, please consider
+            making a donation to your favorite charity and letting
+            me know about it on discord.
+          </div>
+          <div>
+            Please consider playing the games that inspired this one:
+            <ul>
+              <li><a href='https://stopsign.github.io/Nanospread/'><b>Nano</b>spread</a></li>
+              <li><a href='http://nekogames.jp/g2.html?gid=PRM'>Para<b>meters</b></a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
     <dialog id='helpContainer'>
-      HELP
-      <button id='helpClose'>Close</button>
+      <div class='logoRow'><img id='logo' src='./favicon.png'> Nanometers</div>
+      &#x2620;&#xfe0f; &#x1f532; &#x27a1;&#xfe0f; &#x274e;, &#x00a4;, & &#x1f170;&#xfe0f;.
+      <br>&#x274e; &#x27a1;&#xfe0f; &#x2795; &#x1fab2; & &#x1f69a;.
+      <br>&#x1f5dd;&#xfe0f; + &#x1f512; &#x27a1;&#xfe0f; &#x1f513;.
+      <br>&#x1f4b8; &#x27a1;&#xfe0f; &#x2b06;&#xfe0f; &#x274e;, &#x2b06;&#xfe0f; &#x1f30d;.
+      <br>&#x1f520; &#x27a1;&#xfe0f; &#x1f9d9;&#x200d;&#x2642;&#xfe0f;.
+      <br>&#x2620;&#xfe0f; &#x1f4af; &#x1f532; &#x27a1;&#xfe0f; &#x1f3c6;.
+      <div> 
+        <button id='helpClose'>&#x2705;</button>
+      </div>
     </dialog>
     <dialog id='imexContainer'>
       <div>Import / Export</div>

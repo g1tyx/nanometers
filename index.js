@@ -11,17 +11,6 @@ https://jayisgames.com/review/parameters.php
 
 TODO:
   player can set keybinds
-  use won exp to improve 
-    attack power, 
-    transfer speed,
-    generator speed
-  randomly collect letters in ?some word? (originally NEKOGAMES) to unlock
-    a secret room...that does what?
-  all cells get upgraded together
-    increase generation rate
-    decrease shield recovery rate
-    increase transfer rate...maybe scale output not not scale deduction from transferring area?
-  drop points and letters when cell shield breaks
   add sound effects
   add background sound
   add shake
@@ -30,7 +19,7 @@ TODO:
   sanitize area names to not imply function
   adjust special area names to match special area
   when you get all the letters of nanometers you can lock cells (get a free key when you do it)
-  make letter particles look like the letters in the info box
+
   
 
 
@@ -66,6 +55,7 @@ class App {
     this.initGrid();
     this.updateStatsDisplay();
     this.updateLettersDisplay();
+    this.showModal('helpContainer');
     this.initAudio();
 
     setInterval(() => this.update(), 1000/60);
@@ -171,6 +161,7 @@ class App {
     this.UI.statsGenBuy.onclick = () => { this.buyGen(); }
     this.UI.statsTransBuy.onclick = () => { this.buyTrans(); }
     this.UI.statsRecBuy.onclick = () => { this.buyRec(); }
+    this.UI.areaInfoUpgradeButton.onclick = () => { this.buyUpgrade(); }
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
@@ -352,6 +343,7 @@ class App {
 
       switch (area.type) {
         case 'cell': {
+          areaState.upgrades = 0;
           areaState.nanites = 0;
           areaState.lock = area.lock ?? 0;
           //[0,74]
@@ -372,6 +364,7 @@ class App {
           break;
         }
         case 'spawn': {
+          areaState.upgrades = 0;
           areaState.nanites = 1;
           areaState.lock = 0;
           areaState.shield = 0;
@@ -548,9 +541,10 @@ class App {
                 });
               }
             }
-            state.nanites += generationRate;
+            const areaGenerationRate = generationRate * this.getUpgradeValue(i);
+            state.nanites += areaGenerationRate;
             this.totalNanites += state.nanites;
-            this.generation[i] += generationRate;
+            this.generation[i] += areaGenerationRate;
           }
           break;
         }
@@ -606,21 +600,8 @@ class App {
   }
   
   getUnlockedColor(n) {
-    /*
     const OOM = Math.log10(n);
-    const h = (OOM * 30) % 360;
-    const s = 30 + (OOM % 1) * 70;
-    const l = 50;
-    */
-    const OOM = Math.log10(n);
-    //h in [120,315]
-    //s in [30, 100]
-    //h move first
-    //const h = 120 + (OOM * 30) % (315 - 120);
-    //const s = 30 + Math.floor((OOM * 30) / (315 - 120)) * 5;
-    //const l = 50;
-    //return `hsl(${h},${s}%,${l}%)`;
-    const h = (OOM * 300 / 70) % 300;
+    const h = (OOM * 300 / 30) % 300;
     const s = 100;
     const l = 50;
     return `hsl(${h},${s}%,${l}%)`;
@@ -684,6 +665,7 @@ class App {
       const fgDiv = this.UI[`area_fg_${i}`];
       const progDiv = this.UI[`div_area_progress_${i}`];
       const areaContDiv = this.UI[`div_area_${i}`];
+      const upgradeCost = this.getUpgradeCost(area.sym);
       switch (area.type) {
         case 'cell': {
           if (state.shield <= 0) {
@@ -696,11 +678,13 @@ class App {
             progDiv.style.width = `${progressPercent}%`;
             areaContDiv.style.backgroundColor = this.getUnlockedColor(state.shield);
           }
+          fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
           break;
         }
         case 'spawn': {
           fgDiv.textContent = this.formatNanitesForArea(state.nanites);
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+          fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
           break;
         }
         case 'keyg':
@@ -733,18 +717,24 @@ class App {
       this.UI.areaInfoValue.textContent = '';
       this.UI.areaInfoIncoming.textContent = '';
       this.UI.areaInfoOutgoing.textContent = '';
+      this.UI.areaInfoUpgradeButton.disabled = true;
+      this.UI.areaInfoUpgradeButton.textContent = '';
     } else {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
       const selectedState = this.state.areas[selectedIndex];
       const areaName = AREAS_NAMES[selectedIndex];
       this.UI.areaInfoID.textContent = areaName[0].toUpperCase() + areaName.substr(1);
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold'][selectedState.lock];
-      this.UI.areaInfoValue.textContent = (selectedState.nanites - selectedState.shield).toExponential(3);
+      const netValue = selectedState.nanites - selectedState.shield;
+      this.UI.areaInfoValue.textContent = netValue.toExponential(3);
       //(selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
       this.UI.areaInfoGen.textContent = this.generation[selectedIndex].toExponential(3);
       this.UI.areaInfoIncoming.textContent = this.incoming[selectedIndex].toExponential(3);
       this.UI.areaInfoOutgoing.textContent = this.outgoing[selectedIndex].toExponential(3);
       this.UI.areaInfoNet.textContent = (this.generation[selectedIndex] + this.incoming[selectedIndex] - this.outgoing[selectedIndex]).toExponential(3);
+      const upgradeCost = this.getUpgradeCost(this.selectedArea);
+      this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
+      this.UI.areaInfoUpgradeButton.textContent = upgradeCost.toExponential(3);
     }
 
     window.requestAnimationFrame(() => this.draw());
@@ -941,12 +931,29 @@ class App {
       ArrowDown: 'down',
       ArrowLeft: 'left',
       ArrowRight: 'right',
-      Escape: 'none'
+      Escape: 'none',
+      ' ': 'upgrade'
+
     };
     const action = keyMap[key];
     if (action === undefined) {return;}
     evt.preventDefault();
-    this.setAreaDir(sym, action);
+    
+    switch (action) {
+      case 'up':
+      case 'left':
+      case 'down':
+      case 'right':
+      case 'none': {
+        this.setAreaDir(sym, action);
+        break;
+      }
+      case 'upgrade': {
+        this.buyUpgrade();
+        break;
+      }
+    }
+
   }
 
   doGameWin() {
@@ -1022,18 +1029,49 @@ class App {
     }
   }
 
+  getUpgradeValue(index) {
+    const state = this.state.areas[index];
+    
+    return Math.pow(1.5, state.upgrades);
+  }
+
+  getUpgradeCost(sym) {
+    const index = this.symbolIndexes[sym];
+    const state = this.state.areas[index];
+    const type = AREAS[index].type;
+
+    if (type !== 'spawn' && type !== 'cell') {
+      return Infinity;
+    }
+
+    return AREAS[index].val * Math.pow(2, state.upgrades);
+  }
+
+  buyUpgrade() {
+    const index = this.symbolIndexes[this.selectedArea];
+    const state = this.state.areas[index];
+
+    const cost = this.getUpgradeCost(this.selectedArea);
+
+    if (state.nanites >= cost) {
+      state.nanites -= cost;
+      state.upgrades += 1;
+    }
+  }
+
   updateStatsDisplay() {
+    const currencySymbol = '\u00a4';
     this.UI.statsGenValue.textContent = this.getGenValue(this.state.genCount).toExponential(3);
     this.UI.statsGenNext.textContent =  this.getGenValue(this.state.genCount + 1).toExponential(3);
-    this.UI.statsGenCost.textContent = this.getGenCost().toExponential(3);
+    this.UI.statsGenCost.textContent = currencySymbol + this.getGenCost().toExponential(3);
 
     this.UI.statsTransValue.textContent = this.getTransValue(this.state.transCount).toExponential(3);
     this.UI.statsTransNext.textContent =  this.getTransValue(this.state.transCount + 1).toExponential(3);
-    this.UI.statsTransCost.textContent = this.getTransCost().toExponential(3);
+    this.UI.statsTransCost.textContent = currencySymbol + this.getTransCost().toExponential(3);
 
     this.UI.statsRecValue.textContent = this.getRecValue(this.state.recCount).toExponential(3);
     this.UI.statsRecNext.textContent =  this.getRecValue(this.state.recCount + 1).toExponential(3);
-    this.UI.statsRecCost.textContent = this.getRecCost().toExponential(3);
+    this.UI.statsRecCost.textContent = currencySymbol + this.getRecCost().toExponential(3);
   }
 
   updateLettersDisplay() {
