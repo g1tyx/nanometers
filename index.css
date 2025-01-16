@@ -63,6 +63,10 @@ dialog::backdrop {
   outline: 1px solid black;
 }
 
+#spanMagicKey {
+  display: none;
+}
+
 #divCurrency {
   font-size: 20px;
 }

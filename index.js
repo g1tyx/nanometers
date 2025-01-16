@@ -10,15 +10,11 @@ some details here:
 https://jayisgames.com/review/parameters.php
 
 TODO:
-  player can set keybinds
   add sound effects
   add background sound
   add shake
-  don't let particles get lost on reload
-  add start screen to force user to interact and enable audio
-  sanitize area names to not imply function
-  adjust special area names to match special area
-  when you get all the letters of nanometers you can lock cells (get a free key when you do it)
+  re-enable audio when needed
+  allow shielded cells to display selected
 
   
 
@@ -58,6 +54,12 @@ class App {
     this.showModal('helpContainer');
     this.initAudio();
 
+    const missingCash = this.state.cashGenerated - this.state.cashCollected;
+    if (missingCash > 0) {
+      this.state.cash += missingCash;
+      this.state.cashCollected = this.state.cashGenerated;
+    }
+
     setInterval(() => this.update(), 1000/60);
     setInterval(() => this.saveToStorage(), 5 * 1000);
     this.draw();
@@ -75,7 +77,9 @@ class App {
       keysCount: 0,
       keygCount: 0,
       areas: {},
-      letters: [0,0,0,0,0,0,0,0,0,0]
+      letters: [0,0,0,0,0,0,0,0,0,0],
+      cashGenerated: 0,
+      cashCollected: 0
     };
 
     if (rawState !== null) {
@@ -231,6 +235,9 @@ class App {
     const cellSize = 40 - 2 * 1;
 
     this.areas.forEach( (area, i) => {
+      if (area.sym === 'X') {
+        let a = 1;
+      }
       const eArea = document.createElement('div');
       eArea.id = `div_area_${i}`;
       this.UI[eArea.id] = eArea;
@@ -351,16 +358,6 @@ class App {
 
           areaState.shield = area.val;
           
-          switch (areaState.lock) {
-            case 1: {
-              fgDiv.style.backgroundImage = 'url("silverKey.png")';
-              break;
-            }
-            case 2: {
-              fgDiv.style.backgroundImage = 'url("goldKey.png")';
-              break;
-            }
-          }
           break;
         }
         case 'spawn': {
@@ -386,6 +383,22 @@ class App {
           areaState.val = 1e10;
           break;
         }
+        case 'rpgp': {
+          areaState.nanites = 0;
+          areaState.shield = 0;
+          areaState.lock = 0;
+          fgDiv.textContent = '\u26f2';
+          fgDiv.style.fontSize = '36px';
+          break;
+        }
+        case 'slot': {
+          areaState.nanites = 0;
+          areaState.shield = 0;
+          areaState.lock = 0;
+          fgDiv.textContent = '\ud83c\udfb0';
+          fgDiv.style.fontSize = '36px';
+          break;
+        }
 
       }
 
@@ -395,9 +408,11 @@ class App {
       //init arrow displays
       const areaDir = this.state.areas[i].dir;
 
-      //remove lock image from previously unlocked areas
+      //remove lock image from previously unlocked areas and make sure lock changes to magic if necessary
       if (this.state.areas[i].lock === undefined || this.state.areas[i].lock === 0) {
         fgDiv.style.backgroundImage = '';
+      } else {
+        fgDiv.style.backgroundImage = ['', 'url("silverKey.png")', 'url("goldKey.png")', 'url("magicKey.png")'][this.state.areas[i].lock];
       }
 
       if (areaDir !== undefined) {
@@ -567,6 +582,42 @@ class App {
             //set nanites to zero
             state.nanites = 0;
           }
+          break;
+        }
+        case 'rpgp': {
+          if (state.nanites > 0) {
+            const particleValue = state.nanites * 0.01;
+            this.createParticle(area.sym, 'cash', particleValue);
+            state.nanites = 0;
+            this.generation[i] = particleValue;
+            if (Math.random() < 0.01) {
+              const letterIndex = Math.floor(Math.random() * 10);
+              this.createParticle(area.sym, 'letter', letterIndex);
+            }
+          }
+          break;
+        }
+        case 'slot': {
+          if (state.nanites > 0) {
+            //1% chance of returning 1000x what was invested, or a missing letter if needed
+            if (Math.random() < 0.01) {
+              const letterCount = this.state.letters.reduce( (acc, e) => acc + e );
+              if (letterCount < this.state.letters.length) {
+                const letterIndex = this.state.letters.indexOf(0);
+                this.createParticle(area.sym, 'letter', letterIndex);
+              } else {
+                const particleValue = state.nanites;
+                const particleTimes = 10;
+                for (let i = 0; i < particleTimes; i = i + 1) {
+                  setTimeout( () => this.createParticle(area.sym, 'cash', particleValue), Math.random());
+                }
+                this.generation[i] = particleValue * particleTimes;
+              }
+                
+            }
+            state.nanites = 0;
+          }
+          break;
         }
       }
     });
@@ -695,6 +746,13 @@ class App {
           costDiv.textContent = this.formatNanitesForArea(state.shield);
           break;
         }
+        case 'rpgp': {
+          
+          break;
+        }
+        case 'slot': {
+          break;
+        }
       }
     });
 
@@ -722,9 +780,9 @@ class App {
     } else {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
       const selectedState = this.state.areas[selectedIndex];
-      const areaName = AREAS_NAMES[selectedIndex];
-      this.UI.areaInfoID.textContent = areaName[0].toUpperCase() + areaName.substr(1);
-      this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold'][selectedState.lock];
+      //const areaName = AREAS_NAMES[selectedIndex];
+      this.UI.areaInfoID.textContent = String.fromCodePoint(0x1F600 + selectedIndex * 1); //areaName[0].toUpperCase() + areaName.substr(1);
+      this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold', 'Magic'][selectedState.lock];
       const netValue = selectedState.nanites - selectedState.shield;
       this.UI.areaInfoValue.textContent = netValue.toExponential(3);
       //(selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
@@ -757,6 +815,7 @@ class App {
         value = value * 2;
         particle.style.color = 'gold';
       }
+      this.state.cashGenerated += value;
     } else {
       particle.innerText = 'NANOMETERS'[value];
       particle.classList.add('particleLetters');
@@ -767,27 +826,14 @@ class App {
     document.body.appendChild(particle);
 
     particle.onmouseenter = (evt) => {
-      console.log('move', value);
-      const curTime = (new Date()).getTime();
-      const deltaTime = curTime - particle.startTime;
-      if (deltaTime > 500) {
-        particle.remove();
-        if (type === 'cash') {
-          this.state.cash += value;
-          this.UI.cash.textContent = this.formatCash();
-        } else {
-          this.state.letters[value] = 1;
-          this.updateLettersDisplay();
-        }
-        //TODO: fix this so the 1 element plays for the gold particle
-        //TODO: fix this so more than 1 can play at the same time
-        if (Math.random() > 0.5) {
-          this.audioElements[0].play();
-        } else {
-          this.audioElements[1].play();
-        }
-      }
+      this.collectParticle(particle, type, value, true);
     };
+
+    const autoCollectTime = 5000;
+
+    particle.timeoutID = setTimeout(() => {
+      this.collectParticle(particle, type, value, false);
+    }, autoCollectTime);
 
     particle.startTime = (new Date()).getTime();
 
@@ -806,7 +852,7 @@ class App {
     let vy = -300 + Math.random() * 50;
     const g = 10;
     let t = 0;
-    //TODO: keep particle in game area
+
     while (true) {
       vx = vx * 0.99;
       fx += vx * dt;
@@ -824,7 +870,6 @@ class App {
         break;
       }
       if (t > 4) {
-        console.log('limit');
         frames.push({transform: `translate(${fx}px, ${y0}px)`});
         break;
       }
@@ -841,6 +886,31 @@ class App {
     animation.onfinish = () => {
       //particle.remove();
     };
+  }
+
+  collectParticle(particle, type, value, sound) {
+    console.log('collect', value);
+    clearTimeout(particle.timeoutID);
+    const curTime = (new Date()).getTime();
+    const deltaTime = curTime - particle.startTime;
+    if (deltaTime > 500) {
+      particle.remove();
+      if (type === 'cash') {
+        this.state.cash += value;
+        this.UI.cash.textContent = this.formatCash();
+        this.state.cashCollected += value;
+      } else {
+        this.state.letters[value] = 1;
+        this.updateLettersDisplay();
+      }
+      //TODO: fix this so the 1 element plays for the gold particle
+      //TODO: fix this so more than 1 can play at the same time
+      if (sound && Math.random() > 0.5) {
+        this.audioElements[0].play();
+      } else {
+        this.audioElements[1].play();
+      }
+    }
   }
 
   getAreaElementFromSym(sym) {
@@ -927,6 +997,8 @@ class App {
       a: 'left',
       s: 'down',
       d: 'right',
+      '*': 'toggleMagicLock',
+      z: 'toggleMagicLock',
       ArrowUp: 'up',
       ArrowDown: 'down',
       ArrowLeft: 'left',
@@ -952,8 +1024,28 @@ class App {
         this.buyUpgrade();
         break;
       }
+      case 'toggleMagicLock': {
+        this.toggleMagicLock(sym);
+      }
     }
 
+  }
+
+  toggleMagicLock(sym) {
+    const areaIndex = this.symbolIndexes[sym];
+    const areaState = this.state.areas[areaIndex];
+    const areaType = AREAS[areaIndex].type;
+    const magicUnlocked = this.state.letters.reduce( (acc, e) => acc + e ) >= this.state.letters.length;
+    if (areaState.shield > 0 && (areaType === 'cell' || areaType === 'spawn')) {
+      if (areaState.lock === 0) {
+        areaState.lock = 3;
+        this.UI[`area_fg_${areaIndex}`].style.backgroundImage = 'url("magicKey.png")';
+      } else if (areaState.lock === 3) {
+        areaState.lock = 0;
+        this.UI[`area_fg_${areaIndex}`].style.backgroundImage = '';
+      }
+    }
+    
   }
 
   doGameWin() {
@@ -973,8 +1065,10 @@ class App {
     for (let i = 0; i < pCount; i++) {
       this.createParticle(sym, 'cash', areaVal / pCount);
     }
-    const letterIndex = Math.floor(Math.random() * 10);
-    this.createParticle(sym, 'letter', letterIndex);
+    if (Math.random() < 0.75) {
+      const letterIndex = Math.floor(Math.random() * 10);
+      this.createParticle(sym, 'letter', letterIndex);
+    }
   }
 
   getGenValue(count) {
@@ -1075,11 +1169,18 @@ class App {
   }
 
   updateLettersDisplay() {
+    let letterCount = 0;
     this.state.letters.forEach( (v, i) => {
       const e = this.UI[`nd${i}`];
       e.style.backgroundColor = this.letterColors[i % 4];
       e.style.filter = v === 1 ? 'none' : 'blur(3px) grayscale(1)';
+      letterCount += v;
     });
+
+    if (letterCount >= this.state.letters.length) {
+      //show magic key display
+      this.UI.spanMagicKey.style.display = 'inline';
+    }
   }
 }
 
