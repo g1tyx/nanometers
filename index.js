@@ -14,8 +14,8 @@ TODO:
   add background sound
   add shake
   re-enable audio when needed
-  allow shielded cells to display selected
-
+  test win condition
+  
   
 
 
@@ -35,10 +35,11 @@ About parameter
 */
 
 class App {
-  constructor(areas, areasGrid) {
+  constructor(areas, areasGrid, areasOrder) {
     console.log('init');
     this.areas = areas;
     this.areasGrid = areasGrid;
+    this.areasOrder = areasOrder;
 
     this.loadFromStorage();
 
@@ -47,6 +48,8 @@ class App {
     this.letterColors = ['hsl(347, 62%, 54%)', 'hsl(112, 62%, 54%)', 'hsl(185, 62%, 54%)', 'hsl(251, 62%, 54%)'];
     this.selectedCell = undefined;
     this.gridSize = 20;
+    this.particleCount = 0;
+    this.totalGeneration = 0;
     this.initUI();
     this.initGrid();
     this.updateStatsDisplay();
@@ -209,26 +212,16 @@ class App {
     });
 
     let sum = 0;
-    AREAS_ORDER.split('').forEach( (sym, i) => {
+    this.areasOrder.split('').forEach( (sym, i) => {
       const areaIndex = this.symbolIndexes[sym];
 
       if (i === 0) {
-        AREAS[areaIndex].val = 1;
+        this.areas[areaIndex].val = 1;
       } else {
-        //scale(1) = 2
-        //scale(74) = 10
-        //y=mx+b
-        //b = y- mx 
-        /*
-        const slope = (10 - 2) / (74 - 1);
-        const b = 2 - slope * 1;
-        const scale = slope * i + b ;
-        AREAS[areaIndex].val = sum * scale;
-        */
-        AREAS[areaIndex].val = Math.pow(2, i);
+        this.areas[areaIndex].val = Math.pow(2, i);
       }
 
-      sum = sum + AREAS[areaIndex].val;
+      sum = sum + this.areas[areaIndex].val;
     });
 
     //have to account for 1px border
@@ -354,7 +347,7 @@ class App {
           areaState.nanites = 0;
           areaState.lock = area.lock ?? 0;
           //[0,74]
-          const areaOrder = AREAS_ORDER.indexOf(area.sym);
+          const areaOrder = this.areasOrder.indexOf(area.sym);
 
           areaState.shield = area.val;
           
@@ -514,6 +507,7 @@ class App {
     this.outgoing = (new Array(this.areas.length)).fill(0);
 
     this.totalNanites = 0;
+    this.totalGeneration = 0;
 
 
     this.areas.forEach( (area, i) => {
@@ -543,7 +537,7 @@ class App {
                   if (nstate.shield > 0) {
                     nstate.shield = Math.max(0, nstate.shield - transferInVal);
 
-                    if (nstate.shield <= 0 && AREAS[nindex].type === 'cell') {
+                    if (nstate.shield <= 0 && this.areas[nindex].type === 'cell') {
                       if (nsym === '!') {
                         this.doGameWin();
                       } else {
@@ -557,6 +551,7 @@ class App {
               }
             }
             const areaGenerationRate = generationRate * this.getUpgradeValue(i);
+            this.totalGeneration += areaGenerationRate;
             state.nanites += areaGenerationRate;
             this.totalNanites += state.nanites;
             this.generation[i] += areaGenerationRate;
@@ -586,7 +581,7 @@ class App {
         }
         case 'rpgp': {
           if (state.nanites > 0) {
-            const particleValue = state.nanites * 0.01;
+            const particleValue = state.nanites;
             this.createParticle(area.sym, 'cash', particleValue);
             state.nanites = 0;
             this.generation[i] = particleValue;
@@ -730,12 +725,14 @@ class App {
             areaContDiv.style.backgroundColor = this.getUnlockedColor(state.shield);
           }
           fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
+          fgDiv.style.textShadow = state.nanites >= upgradeCost ? '0px 0px 4px black' : '';
           break;
         }
         case 'spawn': {
           fgDiv.textContent = this.formatNanitesForArea(state.nanites);
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
           fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
+          fgDiv.style.textShadow = state.nanites >= upgradeCost ? '0px 0px 4px black' : '';
           break;
         }
         case 'keyg':
@@ -757,6 +754,7 @@ class App {
     });
 
     //update info box 
+    this.UI.statsGenValueGlobal.textContent = this.totalGeneration.toExponential(3);
     const curTime = (new Date()).getTime();
     if (this.state.endTime === undefined) {
       this.UI.spanPlayTime.textContent = this.remainingToStr(curTime - this.state.gameStart, true);
@@ -781,7 +779,35 @@ class App {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
       const selectedState = this.state.areas[selectedIndex];
       //const areaName = AREAS_NAMES[selectedIndex];
-      this.UI.areaInfoID.textContent = String.fromCodePoint(0x1F600 + selectedIndex * 1); //areaName[0].toUpperCase() + areaName.substr(1);
+      switch (selectedIndex) {
+        case 0: {//final
+          this.UI.areaInfoID.textContent = '\ud83c\udfc6';
+          break;
+        }
+        case 1: {//spawn
+          this.UI.areaInfoID.textContent = '\ud83d\udc76';
+          break;
+        }
+        case 7: {//keys
+          this.UI.areaInfoID.textContent = '\ud83d\udd11';
+          break;
+        }
+        case 30: {//keyg
+          this.UI.areaInfoID.textContent = '\ud83d\udddd\ufe0f';
+          break;
+        }
+        case 31: {//slot
+          this.UI.areaInfoID.textContent = '\ud83c\udfb0';
+          break;
+        }
+        case 32: {//fountain
+          this.UI.areaInfoID.textContent = '\u26f2';
+          break;
+        }
+        default: {
+          this.UI.areaInfoID.textContent = String.fromCodePoint(0x1F600 + selectedIndex * 1);
+        }
+      }
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold', 'Magic'][selectedState.lock];
       const netValue = selectedState.nanites - selectedState.shield;
       this.UI.areaInfoValue.textContent = netValue.toExponential(3);
@@ -804,6 +830,16 @@ class App {
   }
 
   createParticle(sym, type, value) {
+    const particleLimit = 100;
+    if (this.particleCount > particleLimit) {
+      if (type === 'cash') {
+        this.state.cashGenerated += value;
+      }
+      this.collectParticleAbstract(type, value);
+      return;
+    }
+
+    this.particleCount += 1;
     const particle = document.createElement('div');
     particle.classList.add('particle');
 
@@ -889,20 +925,14 @@ class App {
   }
 
   collectParticle(particle, type, value, sound) {
-    console.log('collect', value);
+    this.particleCount -= 1;
+    console.log('collect', value.toExponential(3));
     clearTimeout(particle.timeoutID);
     const curTime = (new Date()).getTime();
     const deltaTime = curTime - particle.startTime;
     if (deltaTime > 500) {
       particle.remove();
-      if (type === 'cash') {
-        this.state.cash += value;
-        this.UI.cash.textContent = this.formatCash();
-        this.state.cashCollected += value;
-      } else {
-        this.state.letters[value] = 1;
-        this.updateLettersDisplay();
-      }
+      this.collectParticleAbstract(type, value);
       //TODO: fix this so the 1 element plays for the gold particle
       //TODO: fix this so more than 1 can play at the same time
       if (sound && Math.random() > 0.5) {
@@ -913,16 +943,21 @@ class App {
     }
   }
 
-  getAreaElementFromSym(sym) {
-    const areaIndex = this.symbolIndexes[sym];
-    const areaDiv = this.UI[`div_area_${areaIndex}`];
-    return areaDiv;
+  collectParticleAbstract(type, value) {
+    if (type === 'cash') {
+      this.state.cash += value;
+      this.UI.cash.textContent = this.formatCash();
+      this.state.cashCollected += value;
+    } else {
+      this.state.letters[value] = 1;
+      this.updateLettersDisplay();
+    }
   }
 
   setAreaDir(sym, targetDir) {
     
     const areaIndex = this.symbolIndexes[sym];
-    const areaType = AREAS[areaIndex].type;
+    const areaType = this.areas[areaIndex].type;
     if (areaType !== 'cell' && areaType !== 'spawn') {
       return;
     }
@@ -931,7 +966,7 @@ class App {
       return;
     }
 
-    const areaDiv = this.getAreaElementFromSym(sym);
+    const areaDiv = this.UI[`div_area_${areaIndex}`];
     state.dir = targetDir !== 'none' ? targetDir : undefined;
 
     this.arrowDirs.forEach( dir => {
@@ -979,14 +1014,19 @@ class App {
     //unselect previous area 
     const curSelectedElement = document.getElementsByClassName('areaSelected');
     if (curSelectedElement.length > 0) {
-      for (let i = 0; i < curSelectedElement.length; i++) {
+      for (let i = curSelectedElement.length - 1; i >= 0; i--) {
         curSelectedElement.item(i).classList.remove('areaSelected');
       }
     }
 
     //select new cell
-    const areaDiv = this.getAreaElementFromSym(sym);
+    const areaIndex = this.symbolIndexes[sym];
+    const areaDiv = this.UI[`div_area_${areaIndex}`];
     areaDiv.classList.add('areaSelected');
+    const progressDiv = this.UI[`div_area_progress_${areaIndex}`];
+    progressDiv.classList.add('areaSelected');
+    
+
     this.selectedArea = sym;
   }
 
@@ -1034,7 +1074,7 @@ class App {
   toggleMagicLock(sym) {
     const areaIndex = this.symbolIndexes[sym];
     const areaState = this.state.areas[areaIndex];
-    const areaType = AREAS[areaIndex].type;
+    const areaType = this.areas[areaIndex].type;
     const magicUnlocked = this.state.letters.reduce( (acc, e) => acc + e ) >= this.state.letters.length;
     if (areaState.shield > 0 && (areaType === 'cell' || areaType === 'spawn')) {
       if (areaState.lock === 0) {
@@ -1058,16 +1098,34 @@ class App {
 
   doAreaWin(sym) {
     const areaIndex = this.symbolIndexes[sym];
-    const areaVal = AREAS[areaIndex].val;
+    const areaVal = this.areas[areaIndex].val;
     const minP = 2;
     const maxP = 6;
     const pCount = minP + Math.floor(Math.random() * (maxP - minP + 1));
     for (let i = 0; i < pCount; i++) {
       this.createParticle(sym, 'cash', areaVal / pCount);
     }
-    if (Math.random() < 0.75) {
+    //expected tries is about 60
+    if (Math.random() < 0.5) {
       const letterIndex = Math.floor(Math.random() * 10);
       this.createParticle(sym, 'letter', letterIndex);
+    }
+
+    //check if win
+    const win = this.areas.reduce( (acc, e, i) => {
+      const state = this.state.areas[i];
+      const type = this.areas[i].type;
+      if (type !== 'cell' && type !== 'spawn') {
+        return acc;
+      }
+      if (state.shield <= 0) {
+        return acc;
+      } 
+      return false;
+    }, true);
+
+    if (win === true && this.state.endTime === undefined) {
+      this.doGameWin();
     }
   }
 
@@ -1076,8 +1134,7 @@ class App {
   }
 
   getTransValue(count) {
-    //TODO: this must not go over 100%
-    return 0.01 * Math.pow(2, count);
+    return Math.min(1, 0.01 * Math.pow(2, count));
   }
 
   getRecValue(count) {
@@ -1132,13 +1189,14 @@ class App {
   getUpgradeCost(sym) {
     const index = this.symbolIndexes[sym];
     const state = this.state.areas[index];
-    const type = AREAS[index].type;
+    const type = this.areas[index].type;
 
     if (type !== 'spawn' && type !== 'cell') {
       return Infinity;
     }
 
-    return AREAS[index].val * Math.pow(2, state.upgrades);
+    //return AREAS[index].val * Math.pow(2, state.upgrades);
+    return Math.sqrt(this.areas[index].val) * Math.pow(2, state.upgrades);
   }
 
   buyUpgrade() {
@@ -1184,4 +1242,4 @@ class App {
   }
 }
 
-const app = new App(AREAS, AREAS_GRID);
+const app = new App(AREAS, AREAS_GRID, AREAS_ORDER);

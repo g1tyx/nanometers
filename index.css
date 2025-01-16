@@ -204,6 +204,15 @@ dialog::backdrop {
   margin-top: 1em;
 }
 
+#winTitle {
+  font-size: 32px;
+}
+
+#winClose {
+  width: 100%;
+  margin-top: 1em;
+}
+
 #divNote {
   filter: opacity(0.4);
   align-self: end;
