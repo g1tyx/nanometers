@@ -14,7 +14,6 @@ TODO:
   add background sound
   add shake
   re-enable audio when needed
-  test win condition
   
   
 
@@ -50,6 +49,7 @@ class App {
     this.gridSize = 20;
     this.particleCount = 0;
     this.totalGeneration = 0;
+    this.slotDeck = [];
     this.initUI();
     this.initGrid();
     this.updateStatsDisplay();
@@ -109,17 +109,39 @@ class App {
   }
 
   genExportStr() {
-    return btoa(JSON.stringify(this.state));
+    const json = JSON.stringify(this.state);
+
+    const emojiBase = 0x1f600;
+    const result = json.split('').map( c => {
+      const code = c.charCodeAt(0);
+      const c1 = String.fromCodePoint(emojiBase + (code & 0x0f));
+      const c2 = String.fromCodePoint(emojiBase + ((code >> 4) & 0x0f));
+      return c1+c2;
+    }).join('');
+    return result;
   }
 
   export() {
     this.UI.imexText.value = this.genExportStr();
   }
 
+  decodeExportStr(str) {
+    const emojiBase = 0x1f600;
+    let json = '';
+    const splitStr = [...str];
+    for (let i = 0; i < splitStr.length; i += 2) {
+      const c1 = splitStr[i].codePointAt(0) - emojiBase;
+      const c2 = splitStr[i+1].codePointAt(0) - emojiBase;
+      const code = String.fromCharCode(c1 | (c2 << 4));
+      json += code;
+    }
+    return json;
+  }
+
   import() {
     const importString = this.UI.imexText.value.trim();
 
-    const decodedStr = atob(importString);
+    const decodedStr = this.decodeExportStr(importString);
 
     let state;
     try {
@@ -172,7 +194,7 @@ class App {
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
-    this.UI.cash.textContent = this.formatCash();
+    this.UI.cash.textContent = this.roundExp(this.state.cash, 3, 'floor');
 
   }
 
@@ -550,7 +572,11 @@ class App {
                 });
               }
             }
+
+            //const areaGenerationRate = generationRate * this.getUpgradeValue(i);
             const areaGenerationRate = generationRate * this.getUpgradeValue(i);
+            //const testGen = areaGenerationRate + state.nanites * 0.01;
+
             this.totalGeneration += areaGenerationRate;
             state.nanites += areaGenerationRate;
             this.totalNanites += state.nanites;
@@ -581,10 +607,15 @@ class App {
         }
         case 'rpgp': {
           if (state.nanites > 0) {
+            //100% chance of converting all the nanites into cash (payout is slightly higher due to gold particles)
             const particleValue = state.nanites;
-            this.createParticle(area.sym, 'cash', particleValue);
+            const particleCount = Math.floor(Math.random() * 4) + 1;
+            for (let i = 0; i < particleCount; i++) {
+              setTimeout(() => this.createParticle(area.sym, 'cash', particleValue / particleCount), Math.random() * 1000);
+            }
             state.nanites = 0;
             this.generation[i] = particleValue;
+            //1% chance of generating a random letter
             if (Math.random() < 0.01) {
               const letterIndex = Math.floor(Math.random() * 10);
               this.createParticle(area.sym, 'letter', letterIndex);
@@ -594,17 +625,18 @@ class App {
         }
         case 'slot': {
           if (state.nanites > 0) {
-            //1% chance of returning 1000x what was invested, or a missing letter if needed
-            if (Math.random() < 0.01) {
+            //1% chance of converting this tick's nanites into 1000-2000x cash, or a missing letter if needed
+            if (this.getSlotResult()) {
               const letterCount = this.state.letters.reduce( (acc, e) => acc + e );
               if (letterCount < this.state.letters.length) {
                 const letterIndex = this.state.letters.indexOf(0);
                 this.createParticle(area.sym, 'letter', letterIndex);
               } else {
-                const particleValue = state.nanites;
+                const particleValue = state.nanites * 100 * (1 + Math.random());
                 const particleTimes = 10;
+                console.log(`slot win ${(particleValue * particleTimes).toExponential(3)}`);
                 for (let i = 0; i < particleTimes; i = i + 1) {
-                  setTimeout( () => this.createParticle(area.sym, 'cash', particleValue), Math.random());
+                  setTimeout( () => this.createParticle(area.sym, 'cash', particleValue), Math.random() * 1000);
                 }
                 this.generation[i] = particleValue * particleTimes;
               }
@@ -647,7 +679,7 @@ class App {
   
   getUnlockedColor(n) {
     const OOM = Math.log10(n);
-    const h = (OOM * 300 / 30) % 300;
+    const h = (OOM * 300 / 25) % 300;
     const s = 100;
     const l = 50;
     return `hsl(${h},${s}%,${l}%)`;
@@ -695,13 +727,21 @@ class App {
 
   }
 
-  formatNanitesForArea(val) {
-    if (val === undefined) {return '';}
+  roundToVal(value, roundType, roundVal) {
+    return Math[roundType](value / roundVal) * roundVal;
+  }
 
-    //remove unnecessary + and insert zero width space so narrow
-    //  divs will break the text in the right place
-    //TODO: Make this round up
-    return val.toExponential(1).replace('e+', '\u200be');
+  roundExp(val, digits, roundType) {
+    if (Math.abs(val) === Infinity) {return val.toString();}
+    if (Math.abs(val) < 1e-9) {
+      return `0.${'0'.repeat(digits)}e\u200b0`;
+    }
+    const neg = val < 0;
+    const e = Math.floor(Math.log10(neg ? -val : val));
+    const m = val / Math.pow(10.0, e);
+    const roundm = this.roundToVal(m, roundType, Math.pow(10, -digits));
+    const result = `${roundm.toFixed(digits)}e\u200b${e}`;
+    return result;
   }
 
   draw() {
@@ -715,11 +755,16 @@ class App {
       switch (area.type) {
         case 'cell': {
           if (state.shield <= 0) {
-            fgDiv.textContent = this.formatNanitesForArea(state.nanites);
+            fgDiv.textContent = this.roundExp(state.nanites, 1, 'floor');
             progDiv.style.width = '0%';
-            areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+            if (this.showGen) {
+              //TODO: remove this debug case
+              areaContDiv.style.backgroundColor = this.getUnlockedColor(this.generation[i]);
+            } else {
+              areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+            }
           } else {
-            fgDiv.textContent = this.formatNanitesForArea(state.shield);
+            fgDiv.textContent = this.roundExp(state.shield, 1, 'ceil');
             const progressPercent = 100 * state.shield / area.val;
             progDiv.style.width = `${progressPercent}%`;
             areaContDiv.style.backgroundColor = this.getUnlockedColor(state.shield);
@@ -729,7 +774,7 @@ class App {
           break;
         }
         case 'spawn': {
-          fgDiv.textContent = this.formatNanitesForArea(state.nanites);
+          fgDiv.textContent = this.roundExp(state.nanites, 1, 'floor');
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
           fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
           fgDiv.style.textShadow = state.nanites >= upgradeCost ? '0px 0px 4px black' : '';
@@ -740,21 +785,32 @@ class App {
           const progressPercent = 100 * state.shield / state.val;
           progDiv.style.width = `${progressPercent}%`;
           const costDiv = this.UI[`div_${area.type}_cost`];
-          costDiv.textContent = this.formatNanitesForArea(state.shield);
+          costDiv.textContent = this.roundExp(state.shield, 1, 'ceil');
           break;
         }
         case 'rpgp': {
+          if (state.nanites > 0) {
+            this.startJiggleAnimation(fgDiv, 10, 2000);
+          } else {
+            this.stopJiggleAnimation(fgDiv);
+          }
           
           break;
         }
         case 'slot': {
+          if (state.nanites > 0) {
+            this.startJiggleAnimation(fgDiv, 10, 2000);
+          } else {
+            this.stopJiggleAnimation(fgDiv);
+          }
+
           break;
         }
       }
     });
 
     //update info box 
-    this.UI.statsGenValueGlobal.textContent = this.totalGeneration.toExponential(3);
+    this.UI.statsGenValueGlobal.textContent = this.roundExp(this.totalGeneration, 3, 'floor');
     const curTime = (new Date()).getTime();
     if (this.state.endTime === undefined) {
       this.UI.spanPlayTime.textContent = this.remainingToStr(curTime - this.state.gameStart, true);
@@ -810,23 +866,19 @@ class App {
       }
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold', 'Magic'][selectedState.lock];
       const netValue = selectedState.nanites - selectedState.shield;
-      this.UI.areaInfoValue.textContent = netValue.toExponential(3);
-      //(selectedState.shield > 0 ? selectedState.shield : selectedState.nanites).toExponential(3);
-      this.UI.areaInfoGen.textContent = this.generation[selectedIndex].toExponential(3);
-      this.UI.areaInfoIncoming.textContent = this.incoming[selectedIndex].toExponential(3);
-      this.UI.areaInfoOutgoing.textContent = this.outgoing[selectedIndex].toExponential(3);
-      this.UI.areaInfoNet.textContent = (this.generation[selectedIndex] + this.incoming[selectedIndex] - this.outgoing[selectedIndex]).toExponential(3);
+      this.UI.areaInfoValue.textContent = this.roundExp(netValue, 3, 'floor');
+      this.UI.areaInfoGen.textContent = this.roundExp(this.generation[selectedIndex], 3, 'floor');
+      this.UI.areaInfoIncoming.textContent = this.roundExp(this.incoming[selectedIndex], 3, 'floor');
+      this.UI.areaInfoOutgoing.textContent = this.roundExp(this.outgoing[selectedIndex], 3, 'floor');
+      const netGen = this.generation[selectedIndex] + this.incoming[selectedIndex] - this.outgoing[selectedIndex];
+      this.UI.areaInfoNet.textContent = this.roundExp(netGen, 3, 'floor');
       const upgradeCost = this.getUpgradeCost(this.selectedArea);
       this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
-      this.UI.areaInfoUpgradeButton.textContent = upgradeCost.toExponential(3);
+      this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil');
     }
 
     window.requestAnimationFrame(() => this.draw());
 
-  }
-
-  formatCash() {
-    return this.state.cash.toExponential(1);
   }
 
   createParticle(sym, type, value) {
@@ -930,7 +982,7 @@ class App {
     clearTimeout(particle.timeoutID);
     const curTime = (new Date()).getTime();
     const deltaTime = curTime - particle.startTime;
-    if (deltaTime > 500) {
+    //if (deltaTime > 500) {
       particle.remove();
       this.collectParticleAbstract(type, value);
       //TODO: fix this so the 1 element plays for the gold particle
@@ -940,13 +992,13 @@ class App {
       } else {
         this.audioElements[1].play();
       }
-    }
+    //}
   }
 
   collectParticleAbstract(type, value) {
     if (type === 'cash') {
       this.state.cash += value;
-      this.UI.cash.textContent = this.formatCash();
+      this.UI.cash.textContent = this.roundExp(this.state.cash, 3, 'floor');
       this.state.cashCollected += value;
     } else {
       this.state.letters[value] = 1;
@@ -978,7 +1030,7 @@ class App {
   attemptUnlock(sym) {
     const areaIndex = this.symbolIndexes[sym];
     const state = this.state.areas[areaIndex];
-    if (state.lock !== undefined && state.lock > 0) {
+    if (state.lock !== undefined && (state.lock === 1 || state.lock === 2)) {
       if (state.lock === 1) {
         if (this.state.keysCount > 0) {
           this.state.keysCount -= 1;
@@ -1076,7 +1128,7 @@ class App {
     const areaState = this.state.areas[areaIndex];
     const areaType = this.areas[areaIndex].type;
     const magicUnlocked = this.state.letters.reduce( (acc, e) => acc + e ) >= this.state.letters.length;
-    if (areaState.shield > 0 && (areaType === 'cell' || areaType === 'spawn')) {
+    if (magicUnlocked && areaState.shield > 0 && (areaType === 'cell' || areaType === 'spawn')) {
       if (areaState.lock === 0) {
         areaState.lock = 3;
         this.UI[`area_fg_${areaIndex}`].style.backgroundImage = 'url("magicKey.png")';
@@ -1146,6 +1198,7 @@ class App {
   }
 
   getTransCost() {
+    if (this.state.transCount === 6) {return Infinity;}
     return 1e4 * Math.pow(1e2, this.state.transCount);
   }
 
@@ -1196,7 +1249,8 @@ class App {
     }
 
     //return AREAS[index].val * Math.pow(2, state.upgrades);
-    return Math.sqrt(this.areas[index].val) * Math.pow(2, state.upgrades);
+    //return Math.sqrt(this.areas[index].val) * Math.pow(2, state.upgrades);
+    return Math.pow(this.areas[index].val, 1/2) * Math.pow(2, state.upgrades);
   }
 
   buyUpgrade() {
@@ -1213,17 +1267,17 @@ class App {
 
   updateStatsDisplay() {
     const currencySymbol = '\u00a4';
-    this.UI.statsGenValue.textContent = this.getGenValue(this.state.genCount).toExponential(3);
-    this.UI.statsGenNext.textContent =  this.getGenValue(this.state.genCount + 1).toExponential(3);
-    this.UI.statsGenCost.textContent = currencySymbol + this.getGenCost().toExponential(3);
+    this.UI.statsGenValue.textContent = this.roundExp(this.getGenValue(this.state.genCount), 3, 'floor');
+    this.UI.statsGenNext.textContent =  this.roundExp(this.getGenValue(this.state.genCount + 1), 3, 'floor');
+    this.UI.statsGenCost.textContent = currencySymbol + this.roundExp(this.getGenCost(), 3, 'ceil');
 
-    this.UI.statsTransValue.textContent = this.getTransValue(this.state.transCount).toExponential(3);
-    this.UI.statsTransNext.textContent =  this.getTransValue(this.state.transCount + 1).toExponential(3);
-    this.UI.statsTransCost.textContent = currencySymbol + this.getTransCost().toExponential(3);
+    this.UI.statsTransValue.textContent = this.roundExp(this.getTransValue(this.state.transCount), 3, 'floor');
+    this.UI.statsTransNext.textContent =  this.roundExp(this.getTransValue(this.state.transCount + 1), 3, 'floor');
+    this.UI.statsTransCost.textContent = currencySymbol + this.roundExp(this.getTransCost(), 3, 'ceil');
 
-    this.UI.statsRecValue.textContent = this.getRecValue(this.state.recCount).toExponential(3);
-    this.UI.statsRecNext.textContent =  this.getRecValue(this.state.recCount + 1).toExponential(3);
-    this.UI.statsRecCost.textContent = currencySymbol + this.getRecCost().toExponential(3);
+    this.UI.statsRecValue.textContent = this.roundExp(this.getRecValue(this.state.recCount), 3, 'ceil');
+    this.UI.statsRecNext.textContent =  this.roundExp(this.getRecValue(this.state.recCount + 1), 3, 'ceil');
+    this.UI.statsRecCost.textContent = currencySymbol + this.roundExp(this.getRecCost(), 3, 'ceil');
   }
 
   updateLettersDisplay() {
@@ -1239,6 +1293,56 @@ class App {
       //show magic key display
       this.UI.spanMagicKey.style.display = 'inline';
     }
+  }
+
+  startJiggleAnimation(element, limit, duration) {
+    if (element.anim !== undefined) {return;}
+
+    const frames = [
+      {transform: 'rotate(0deg)'},
+      {transform: `rotate(-${limit}deg)`},
+      {transform: 'rotate(0deg)'},
+      {transform: `rotate(${limit}deg)`},
+      {transform: 'rotate(0deg)'}
+    ];
+
+    element.anim = element.animate(
+      frames, {
+        duration: duration,
+        iterations: Infinity
+      }
+    );
+  }
+
+  stopJiggleAnimation(element) {
+    if (element.anim === undefined) {return;}
+    element.anim.cancel();
+    element.anim = undefined;
+  }
+
+  createSlotsDeck() {
+    const deckSize = 100;
+    const winSpots = 1;
+
+    this.slotDeck = (new Array(deckSize)).fill(false);
+
+    //assuming winSpots is a lot smaller than deckSize or else this may be slow
+    let spotsToPlace = winSpots;
+    while (spotsToPlace > 0) {
+      const spotIndex = Math.floor(Math.random() * deckSize);
+      if (!this.slotDeck[spotIndex]) {
+        this.slotDeck[spotIndex] = true;
+          spotsToPlace--;
+      }
+    }
+  }
+
+  getSlotResult() {
+    if (this.slotDeck.length === 0) {
+      this.createSlotsDeck();
+    }
+
+    return this.slotDeck.pop();
   }
 }
 
