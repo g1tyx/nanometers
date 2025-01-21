@@ -11,9 +11,10 @@ https://jayisgames.com/review/parameters.php
 
 TODO:
   add sound effects
-  add background sound
-  add shake
-  re-enable audio when needed
+    gold vs silver coin
+    gold vs silver key
+  add ambient sound
+    build with more unlocked areas?
   
   
 
@@ -82,7 +83,10 @@ class App {
       areas: {},
       letters: [0,0,0,0,0,0,0,0,0,0],
       cashGenerated: 0,
-      cashCollected: 0
+      cashCollected: 0,
+      sfx: 1,
+      ambient: 1,
+      shake: 1
     };
 
     if (rawState !== null) {
@@ -163,6 +167,10 @@ class App {
 
   closeModal(name) {
     this.UI[name].close();
+    if (this.audioReady === 0) {
+      app.audioContext.resume();
+      this.audioReady = 1;
+    } 
   }
 
   initUI() {
@@ -191,10 +199,16 @@ class App {
     this.UI.statsTransBuy.onclick = () => { this.buyTrans(); }
     this.UI.statsRecBuy.onclick = () => { this.buyRec(); }
     this.UI.areaInfoUpgradeButton.onclick = () => { this.buyUpgrade(); }
+    this.UI.chkSFX.onchange = () => this.state.sfx = +(this.UI.chkSFX.checked);
+    this.UI.chkAmbient.onchange = () => this.state.ambient = +(this.UI.chkAmbient.checked);
+    this.UI.chkShake.onchange = () => this.state.shake = +(this.UI.chkShake.checked);
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
     this.UI.cash.textContent = this.roundExp(this.state.cash, 3, 'floor');
+    this.UI.chkSFX.checked = this.state.sfx;
+    this.UI.chkAmbient.checked = this.state.ambient;
+    this.UI.chkShake.checked = this.state.shake;
 
   }
 
@@ -441,16 +455,35 @@ class App {
   }
 
   initAudio() {
+    this.audioReady = 0;
+    this.audioSounds = {};
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     this.audioContext = new AudioContext();
-    this.audioElements = [];
-    'pickupCoin,pickupCoinHigh'.split(',').forEach( audioName => {
+
+    this.wavListToTracks('dropCoin,dropCoinHigh'.split(','), 'dropCoin');
+    this.wavListToTracks('pickupCoin,pickupCoinHigh'.split(','), 'pickupCoin');
+    this.wavListToTracks('explosion,explosionHigh'.split(','), 'explosion');
+
+  }
+
+  wavListToTracks(nameList, soundName) {
+    this.audioSounds[soundName] = [];
+    nameList.forEach( audioName => {
       const audioElement = new Audio(`./${audioName}.wav`);
       const track = this.audioContext.createMediaElementSource(audioElement);
       track.connect(this.audioContext.destination);
-      this.audioElements.push(audioElement);
+      this.audioSounds[soundName].push(audioElement);
     });
-    //TODO: need to call this.audioContext.resume() after user has interacted with the page
+  }
+
+  playAudio(soundName, index) {
+    if (this.audioReady <= 0 || this.state.sfx === 0) {return;}
+    const soundArray = this.audioSounds[soundName];
+    const soundCount = soundArray.length;
+    const soundIndex = index ?? Math.floor(Math.random() * soundCount);
+    const sound = soundArray[soundIndex];
+    sound.currentTime = 0;
+    sound.play();
   }
 
   getAreaNeighbors(sym, dir) {
@@ -904,6 +937,7 @@ class App {
         particle.style.color = 'gold';
       }
       this.state.cashGenerated += value;
+      this.playAudio('dropCoin');
     } else {
       particle.innerText = 'NANOMETERS'[value];
       particle.classList.add('particleLetters');
@@ -982,17 +1016,11 @@ class App {
     clearTimeout(particle.timeoutID);
     const curTime = (new Date()).getTime();
     const deltaTime = curTime - particle.startTime;
-    //if (deltaTime > 500) {
-      particle.remove();
-      this.collectParticleAbstract(type, value);
-      //TODO: fix this so the 1 element plays for the gold particle
-      //TODO: fix this so more than 1 can play at the same time
-      if (sound && Math.random() > 0.5) {
-        this.audioElements[0].play();
-      } else {
-        this.audioElements[1].play();
-      }
-    //}
+    particle.remove();
+    this.collectParticleAbstract(type, value);
+    if (sound || true) {
+      this.playAudio('pickupCoin');
+    }
   }
 
   collectParticleAbstract(type, value) {
@@ -1148,6 +1176,24 @@ class App {
     this.saveToStorage();
   }
 
+  shakeScreen() {
+    if (this.state.shake === 0) {return;}
+    const frames = [];
+    const shakeElement = this.UI.gridContainer;
+    const shakeSize = 5;
+
+    for (let i = 0; i < 20; i++) {
+      frames.push({transform: `translate(${(i % 2 === 0 ? 1 : -1) * shakeSize}px, 0px)`});
+    }
+
+
+    shakeElement.animate(
+      frames, {
+        duration: 1000
+      }
+    );
+  }
+
   doAreaWin(sym) {
     const areaIndex = this.symbolIndexes[sym];
     const areaVal = this.areas[areaIndex].val;
@@ -1162,6 +1208,9 @@ class App {
       const letterIndex = Math.floor(Math.random() * 10);
       this.createParticle(sym, 'letter', letterIndex);
     }
+
+    this.playAudio('explosion');
+    this.shakeScreen();
 
     //check if win
     const win = this.areas.reduce( (acc, e, i) => {
@@ -1278,6 +1327,8 @@ class App {
     this.UI.statsRecValue.textContent = this.roundExp(this.getRecValue(this.state.recCount), 3, 'ceil');
     this.UI.statsRecNext.textContent =  this.roundExp(this.getRecValue(this.state.recCount + 1), 3, 'ceil');
     this.UI.statsRecCost.textContent = currencySymbol + this.roundExp(this.getRecCost(), 3, 'ceil');
+
+    this.UI.cash.textContent = this.roundExp(this.state.cash, 3, 'floor');
   }
 
   updateLettersDisplay() {
