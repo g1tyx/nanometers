@@ -10,28 +10,6 @@ some details here:
 https://jayisgames.com/review/parameters.php
 
 TODO:
-  add sound effects
-    gold vs silver coin
-    gold vs silver key
-  add ambient sound
-    build with more unlocked areas?
-  
-  
-
-
-parameters english help text:
-How to play
-- Complete the game by defeating every enemy
--Money ($) and EXP a re collected by mousing over them.
-About Item
-- Keys can be earned by defeating enemies, or can be purchased in the shop.
-- You can buy wewapons and armor for ATK and DEF bonuses, up to 9 of each individual type.
-About parameter
-  RCV determines how fast you recover life, when not fighting enemies, and activity points
-  (ACT), when not on a mission.
-  ATK determines the strength of your attacks.
-  DEF determines how much damage you take from enemies.
-
 */
 
 class App {
@@ -50,13 +28,14 @@ class App {
     this.gridSize = 20;
     this.particleCount = 0;
     this.totalGeneration = 0;
+    this.lastLetterCount = 0;
     this.slotDeck = [];
+    this.initAudio();
     this.initUI();
     this.initGrid();
     this.updateStatsDisplay();
     this.updateLettersDisplay();
     this.showModal('helpContainer');
-    this.initAudio();
 
     const missingCash = this.state.cashGenerated - this.state.cashCollected;
     if (missingCash > 0) {
@@ -85,8 +64,8 @@ class App {
       cashGenerated: 0,
       cashCollected: 0,
       sfx: 1,
-      ambient: 1,
-      shake: 1
+      shake: 1,
+      color: 'str'
     };
 
     if (rawState !== null) {
@@ -200,14 +179,22 @@ class App {
     this.UI.statsRecBuy.onclick = () => { this.buyRec(); }
     this.UI.areaInfoUpgradeButton.onclick = () => { this.buyUpgrade(); }
     this.UI.chkSFX.onchange = () => this.state.sfx = +(this.UI.chkSFX.checked);
-    this.UI.chkAmbient.onchange = () => this.state.ambient = +(this.UI.chkAmbient.checked);
     this.UI.chkShake.onchange = () => this.state.shake = +(this.UI.chkShake.checked);
+    this.UI.rdoStrength.onchange = () => { if (this.UI.rdoStrength.checked) {this.changeColor('str');} };
+    this.UI.rdoGen.onchange =      () => { if (this.UI.rdoGen.checked)      {this.changeColor('gen');} };
+    this.UI.rdoNet.onchange =      () => { if (this.UI.rdoNet.checked)      {this.changeColor('net');} };
+    this.UI.rdoUpgrades.onchange = () => { if (this.UI.rdoUpgrades.checked) {this.changeColor('upg');} };
+    this.UI.rdoStrength.checked = this.state.color === 'str';
+    this.UI.rdoGen.checked = this.state.color === 'gen';
+    this.UI.rdoNet.checked = this.state.color === 'net';
+    this.UI.rdoUpgrades.checked = this.state.color === 'upg';
+
+    this.changeColor(this.state.color);
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
     this.UI.spanKeyCountG.textContent = this.state.keygCount;
     this.UI.cash.textContent = this.roundExp(this.state.cash, 3, 'floor');
     this.UI.chkSFX.checked = this.state.sfx;
-    this.UI.chkAmbient.checked = this.state.ambient;
     this.UI.chkShake.checked = this.state.shake;
 
   }
@@ -225,6 +212,9 @@ class App {
     this.locationAreas = locationAreas;
     this.symbolIndexes = symbolIndexes;
     this.specialIndexes = {};
+    this.generation = [];
+    this.incoming = [];
+    this.outgoing = [];
 
     this.areasGrid.forEach( (row, y) => {
       row.split('').forEach( (sym, x) => {
@@ -245,6 +235,9 @@ class App {
       if (area.type !== 'cell') {
         this.specialIndexes[area.type] = i;
       }
+      this.generation[i] = 0;
+      this.incoming[i] = 0;
+      this.outgoing[i] = 0;
     });
 
     let sum = 0;
@@ -463,6 +456,12 @@ class App {
     this.wavListToTracks('dropCoin,dropCoinHigh'.split(','), 'dropCoin');
     this.wavListToTracks('pickupCoin,pickupCoinHigh'.split(','), 'pickupCoin');
     this.wavListToTracks('explosion,explosionHigh'.split(','), 'explosion');
+    this.wavListToTracks('slot'.split(','), 'slot');
+    this.wavListToTracks('dropLetter,dropLetterHigh'.split(','), 'dropLetter');
+    this.wavListToTracks('pickupLetter,pickupLetterHigh'.split(','), 'pickupLetter');
+    this.wavListToTracks('useKey,useKey2'.split(','), 'useKey');
+    this.wavListToTracks('getKey,getKeyHigh'.split(','), 'getKey');
+    this.wavListToTracks('lettersComplete'.split(','), 'lettersComplete');
 
   }
 
@@ -556,17 +555,15 @@ class App {
     const transferRate = this.getTransValue(this.state.transCount);
     const recoveryRate = this.getRecValue(this.state.recCount);
 
-   
-    this.generation = (new Array(this.areas.length)).fill(0);
-    this.incoming = (new Array(this.areas.length)).fill(0);
-    this.outgoing = (new Array(this.areas.length)).fill(0);
-
     this.totalNanites = 0;
     this.totalGeneration = 0;
 
 
     this.areas.forEach( (area, i) => {
       const state = this.state.areas[i];
+      this.generation[i] = 0;
+      this.incoming[i] = 0;
+      this.outgoing[i] = 0;
       switch (area.type) {
         case 'spawn': {
           //fall through
@@ -624,6 +621,7 @@ class App {
             const stateKey = `key${area.type === 'keys' ? 's' : 'g'}Count`;
             this.state[stateKey] += 1;
             state.bought += 1;
+            this.playAudio('getKey');
 
             //update key display in infobox
             const infoId = `spanKeyCount${area.type === 'keys' ? 'S' : 'G'}`;
@@ -661,6 +659,7 @@ class App {
             //1% chance of converting this tick's nanites into 1000-2000x cash, or a missing letter if needed
             if (this.getSlotResult()) {
               const letterCount = this.state.letters.reduce( (acc, e) => acc + e );
+              this.playAudio('slot');
               if (letterCount < this.state.letters.length) {
                 const letterIndex = this.state.letters.indexOf(0);
                 this.createParticle(area.sym, 'letter', letterIndex);
@@ -711,7 +710,7 @@ class App {
   }
   
   getUnlockedColor(n) {
-    const OOM = Math.log10(n);
+    const OOM = Math.log10(Math.max(1, n));
     const h = (OOM * 300 / 25) % 300;
     const s = 100;
     const l = 50;
@@ -790,11 +789,25 @@ class App {
           if (state.shield <= 0) {
             fgDiv.textContent = this.roundExp(state.nanites, 1, 'floor');
             progDiv.style.width = '0%';
-            if (this.showGen) {
-              //TODO: remove this debug case
-              areaContDiv.style.backgroundColor = this.getUnlockedColor(this.generation[i]);
-            } else {
-              areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+            switch (this.state.color) {
+              case 'str': {
+                areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+                break;
+              }
+              case 'gen': {
+                areaContDiv.style.backgroundColor = this.getUnlockedColor(this.generation[i]);
+                break;
+              }
+              case 'net': {
+                const netGen = this.generation[i] + this.incoming[i] - this.outgoing[i];
+                areaContDiv.style.backgroundColor = this.getUnlockedColor(netGen);
+                break;
+              }
+              case 'upg': {
+                const scaledValue = state.upgrades * 300 / 80;
+                areaContDiv.style.backgroundColor = `hsl(${scaledValue},100%,50%)`;
+                break;
+              }
             }
           } else {
             fgDiv.textContent = this.roundExp(state.shield, 1, 'ceil');
@@ -907,7 +920,7 @@ class App {
       this.UI.areaInfoNet.textContent = this.roundExp(netGen, 3, 'floor');
       const upgradeCost = this.getUpgradeCost(this.selectedArea);
       this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
-      this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil');
+      this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil') + `(${selectedState.upgrades ?? ''})`;
     }
 
     window.requestAnimationFrame(() => this.draw());
@@ -942,6 +955,7 @@ class App {
       particle.innerText = 'NANOMETERS'[value];
       particle.classList.add('particleLetters');
       particle.style.backgroundColor = this.letterColors[value % 4];
+      this.playAudio('dropLetter');
     }
 
 
@@ -1019,7 +1033,7 @@ class App {
     particle.remove();
     this.collectParticleAbstract(type, value);
     if (sound || true) {
-      this.playAudio('pickupCoin');
+      this.playAudio(type === 'cash' ? 'pickupCoin' : 'pickupLetter');
     }
   }
 
@@ -1067,6 +1081,7 @@ class App {
           this.UI[`area_fg_${areaIndex}`].style.backgroundImage = '';
           //update info box
           this.UI.spanKeyCountS.textContent = this.state.keysCount;
+          this.playAudio('useKey');
         }
       } else {
         if (this.state.keygCount > 0) {
@@ -1076,6 +1091,7 @@ class App {
           this.UI[`area_fg_${areaIndex}`].style.backgroundImage = '';
           //update info box
           this.UI.spanKeyCountG.textContent = this.state.keygCount;
+          this.playAudio('useKey');
         }
       }
     }
@@ -1111,20 +1127,20 @@ class App {
   }
 
   keydownArea(evt, sym) {
-    const key = evt.key;
+    const key = evt.code;
     const keyMap = {
-      w: 'up',
-      a: 'left',
-      s: 'down',
-      d: 'right',
-      '*': 'toggleMagicLock',
-      z: 'toggleMagicLock',
+      KeyW: 'up',
+      KeyA: 'left',
+      KeyS: 'down',
+      KeyD: 'right',
+      Digit8: 'toggleMagicLock',
+      KeyZ: 'toggleMagicLock',
       ArrowUp: 'up',
       ArrowDown: 'down',
       ArrowLeft: 'left',
       ArrowRight: 'right',
       Escape: 'none',
-      ' ': 'upgrade'
+      Space: 'upgrade'
 
     };
     const action = keyMap[key];
@@ -1343,7 +1359,11 @@ class App {
     if (letterCount >= this.state.letters.length) {
       //show magic key display
       this.UI.spanMagicKey.style.display = 'inline';
+      if (this.lastLetterCount < letterCount) {
+        this.playAudio('lettersComplete');
+      }
     }
+    this.lastLetterCount = letterCount;
   }
 
   startJiggleAnimation(element, limit, duration) {
@@ -1394,6 +1414,11 @@ class App {
     }
 
     return this.slotDeck.pop();
+  }
+
+  changeColor(method) {
+    this.state.color = method;
+    console.log(method);
   }
 }
 
