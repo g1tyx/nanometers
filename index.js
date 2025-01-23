@@ -189,6 +189,12 @@ class App {
     this.UI.rdoNet.checked = this.state.color === 'net';
     this.UI.rdoUpgrades.checked = this.state.color === 'upg';
 
+    this.UI.areaArrowUp.onclick    = () => { this.setAreaDir(this.selectedArea, 'up'); };
+    this.UI.areaArrowLeft.onclick  = () => { this.setAreaDir(this.selectedArea, 'left'); };
+    this.UI.areaArrowNone.onclick  = () => { this.setAreaDir(this.selectedArea, 'none'); };
+    this.UI.areaArrowRight.onclick = () => { this.setAreaDir(this.selectedArea, 'right'); };
+    this.UI.areaArrowDown.onclick  = () => { this.setAreaDir(this.selectedArea, 'down'); };
+
     this.changeColor(this.state.color);
 
     this.UI.spanKeyCountS.textContent = this.state.keysCount;
@@ -877,6 +883,11 @@ class App {
       this.UI.areaInfoOutgoing.textContent = '';
       this.UI.areaInfoUpgradeButton.disabled = true;
       this.UI.areaInfoUpgradeButton.textContent = '';
+      this.UI.areaArrowUp.disabled    = true; 
+      this.UI.areaArrowLeft.disabled  = true;
+      this.UI.areaArrowNone.disabled  = true;
+      this.UI.areaArrowRight.disabled = true;
+      this.UI.areaArrowDown.disabled  = true;
     } else {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
       const selectedState = this.state.areas[selectedIndex];
@@ -921,7 +932,26 @@ class App {
       const upgradeCost = this.getUpgradeCost(this.selectedArea);
       this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
       this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil') + `(${selectedState.upgrades ?? ''})`;
+      const selectedAreaType = this.areas[selectedIndex].type;
+      this.UI.areaArrowUp.disabled    = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
+      this.UI.areaArrowLeft.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
+      this.UI.areaArrowNone.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
+      this.UI.areaArrowRight.disabled = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
+      this.UI.areaArrowDown.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
+
+      const selectedShadow = 'inset 0px 0px 2px 2px black';
+      this.UI.areaArrowUp.style.boxShadow    = selectedState.dir === 'up'    ? selectedShadow : '';
+      this.UI.areaArrowLeft.style.boxShadow  = selectedState.dir === 'left'  ? selectedShadow : ''; 
+      this.UI.areaArrowNone.style.boxShadow  = selectedState.dir === undefined  ? selectedShadow : '';
+      this.UI.areaArrowRight.style.boxShadow = selectedState.dir === 'right' ? selectedShadow : '';
+      this.UI.areaArrowDown.style.boxShadow  = selectedState.dir === 'down'  ? selectedShadow : '';
     }
+
+    //this.UI.areaArrowLeft.disabled  =
+    //this.UI.areaArrowNone.disabled  =
+    //this.UI.areaArrowRight.disabled =
+    //this.UI.areaArrowDown.disabled  =
+
 
     window.requestAnimationFrame(() => this.draw());
 
@@ -1050,6 +1080,8 @@ class App {
 
   setAreaDir(sym, targetDir) {
     
+    if (sym === undefined) {return;}
+
     const areaIndex = this.symbolIndexes[sym];
     const areaType = this.areas[areaIndex].type;
     if (areaType !== 'cell' && areaType !== 'spawn') {

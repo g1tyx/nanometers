@@ -78,6 +78,7 @@ dialog::backdrop {
 }
 
 #areaInfoContainer {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-column-gap: 10px;
@@ -93,6 +94,44 @@ dialog::backdrop {
 
 #areaInfoTable {
   width: 100%;
+}
+
+#areaArrowContainer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 30px 30px 30px;
+  grid-template-rows: 30px 30px 30px;
+  margin: 10px;
+}
+
+.areaArrow {
+  padding: 0px;
+  font-size: 20px;
+}
+
+#areaArrowUp {
+  grid-column-start: 2;
+}
+
+#areaArrowLeft {
+  grid-row-start: 2;
+}
+
+#areaArrowNone {
+  grid-row-start: 2;
+  grid-column-start: 2;
+}
+
+#areaArrowRight {
+  grid-column-start: 3;
+  grid-row-start: 2;
+}
+
+#areaArrowDown {
+  grid-column-start: 2;
+  grid-row-start: 3;
 }
 
 #gridContainer {
