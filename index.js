@@ -563,13 +563,17 @@ class App {
 
     this.totalNanites = 0;
     this.totalGeneration = 0;
+    
+
+    this.areas.forEach( (area, i) => {
+      this.generation[i] = 0;
+      this.incoming[i] = 0;
+      this.outgoing[i] = 0;
+    });
 
 
     this.areas.forEach( (area, i) => {
       const state = this.state.areas[i];
-      this.generation[i] = 0;
-      this.incoming[i] = 0;
-      this.outgoing[i] = 0;
       switch (area.type) {
         case 'spawn': {
           //fall through
