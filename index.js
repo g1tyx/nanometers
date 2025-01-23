@@ -184,11 +184,14 @@ class App {
     this.UI.rdoGen.onchange =      () => { if (this.UI.rdoGen.checked)      {this.changeColor('gen');} };
     this.UI.rdoNet.onchange =      () => { if (this.UI.rdoNet.checked)      {this.changeColor('net');} };
     this.UI.rdoUpgrades.onchange = () => { if (this.UI.rdoUpgrades.checked) {this.changeColor('upg');} };
+    this.UI.rdoShield.onchange =   () => { if (this.UI.rdoShield.checked)   {this.changeColor('shi');} };
     this.UI.rdoStrength.checked = this.state.color === 'str';
     this.UI.rdoGen.checked = this.state.color === 'gen';
     this.UI.rdoNet.checked = this.state.color === 'net';
     this.UI.rdoUpgrades.checked = this.state.color === 'upg';
+    this.UI.rdoShield.checked = this.state.color === 'shi';
 
+    this.UI.areaArrowKey.onclick   = () => { this.toggleMagicLock(this.selectedArea); };
     this.UI.areaArrowUp.onclick    = () => { this.setAreaDir(this.selectedArea, 'up'); };
     this.UI.areaArrowLeft.onclick  = () => { this.setAreaDir(this.selectedArea, 'left'); };
     this.UI.areaArrowNone.onclick  = () => { this.setAreaDir(this.selectedArea, 'none'); };
@@ -818,12 +821,17 @@ class App {
                 areaContDiv.style.backgroundColor = `hsl(${scaledValue},100%,50%)`;
                 break;
               }
+              case 'shi': {
+                areaContDiv.style.backgroundColor = 'hsl(0, 0%, 65%)';
+              }
             }
           } else {
             fgDiv.textContent = this.roundExp(state.shield, 1, 'ceil');
             const progressPercent = 100 * state.shield / area.val;
             progDiv.style.width = `${progressPercent}%`;
-            areaContDiv.style.backgroundColor = this.getUnlockedColor(state.shield);
+            const shieldColor = this.getUnlockedColor(state.shield);
+            progDiv.style.backgroundColor = this.state.color === 'shi' ? shieldColor : 'hsl(0, 0%, 65%)';
+            areaContDiv.style.backgroundColor = shieldColor;
           }
           fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
           fgDiv.style.textShadow = state.nanites >= upgradeCost ? '0px 0px 4px black' : '';
@@ -887,6 +895,8 @@ class App {
       this.UI.areaInfoOutgoing.textContent = '';
       this.UI.areaInfoUpgradeButton.disabled = true;
       this.UI.areaInfoUpgradeButton.textContent = '';
+      this.UI.areaArrowKey.disabled   = true;
+      this.UI.areaArrowKey.style.filter = 'opacity(0.5) grayscale(0.5)';
       this.UI.areaArrowUp.disabled    = true; 
       this.UI.areaArrowLeft.disabled  = true;
       this.UI.areaArrowNone.disabled  = true;
@@ -937,6 +947,13 @@ class App {
       this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
       this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil') + `(${selectedState.upgrades ?? ''})`;
       const selectedAreaType = this.areas[selectedIndex].type;
+      const keyDisabled = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield <= 0) || (selectedState.lock === 1 || selectedState.lock === 2); 
+      this.UI.areaArrowKey.disabled = keyDisabled; 
+      if (keyDisabled) {
+        this.UI.areaArrowKey.style.filter = 'opacity(0.5) grayscale(0.5)';
+      } else {
+        this.UI.areaArrowKey.style.filter = '';
+      }
       this.UI.areaArrowUp.disabled    = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
       this.UI.areaArrowLeft.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
       this.UI.areaArrowNone.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
@@ -944,6 +961,7 @@ class App {
       this.UI.areaArrowDown.disabled  = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield > 0); 
 
       const selectedShadow = 'inset 0px 0px 2px 2px black';
+      this.UI.areaArrowKey.style.boxShadow   = selectedState.lock === 3      ? selectedShadow : '';
       this.UI.areaArrowUp.style.boxShadow    = selectedState.dir === 'up'    ? selectedShadow : '';
       this.UI.areaArrowLeft.style.boxShadow  = selectedState.dir === 'left'  ? selectedShadow : ''; 
       this.UI.areaArrowNone.style.boxShadow  = selectedState.dir === undefined  ? selectedShadow : '';
@@ -1204,6 +1222,7 @@ class App {
   }
 
   toggleMagicLock(sym) {
+    if (sym === undefined) {return;}
     const areaIndex = this.symbolIndexes[sym];
     const areaState = this.state.areas[areaIndex];
     const areaType = this.areas[areaIndex].type;
@@ -1395,6 +1414,7 @@ class App {
     if (letterCount >= this.state.letters.length) {
       //show magic key display
       this.UI.spanMagicKey.style.display = 'inline';
+      this.UI.areaArrowKey.style.display = 'inline';
       if (this.lastLetterCount < letterCount) {
         this.playAudio('lettersComplete');
       }
@@ -1454,7 +1474,6 @@ class App {
 
   changeColor(method) {
     this.state.color = method;
-    console.log(method);
   }
 }
 
