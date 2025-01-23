@@ -471,6 +471,7 @@ class App {
     this.wavListToTracks('useKey,useKey2'.split(','), 'useKey');
     this.wavListToTracks('getKey,getKeyHigh'.split(','), 'getKey');
     this.wavListToTracks('lettersComplete'.split(','), 'lettersComplete');
+    this.wavListToTracks('click'.split(','), 'click');
 
   }
 
@@ -1176,8 +1177,10 @@ class App {
     const progressDiv = this.UI[`div_area_progress_${areaIndex}`];
     progressDiv.classList.add('areaSelected');
     
-
-    this.selectedArea = sym;
+    if (this.selectedArea !== sym) {
+      this.selectedArea = sym;
+      this.playAudio('click');
+    }
   }
 
   keydownArea(evt, sym) {
