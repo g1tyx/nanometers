@@ -843,6 +843,29 @@ class App {
           areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
           fgDiv.style.color = state.nanites >= upgradeCost ? 'white' : 'black';
           fgDiv.style.textShadow = state.nanites >= upgradeCost ? '0px 0px 4px black' : '';
+          switch (this.state.color) {
+            case 'str': {
+              areaContDiv.style.backgroundColor = this.getUnlockedColor(state.nanites);
+              break;
+            }
+            case 'gen': {
+              areaContDiv.style.backgroundColor = this.getUnlockedColor(this.generation[i]);
+              break;
+            }
+            case 'net': {
+              const netGen = this.generation[i] + this.incoming[i] - this.outgoing[i];
+              areaContDiv.style.backgroundColor = this.getUnlockedColor(netGen);
+              break;
+            }
+            case 'upg': {
+              const scaledValue = state.upgrades * 300 / 80;
+              areaContDiv.style.backgroundColor = `hsl(${scaledValue},100%,50%)`;
+              break;
+            }
+            case 'shi': {
+              areaContDiv.style.backgroundColor = 'hsl(0, 0%, 65%)';
+            }
+          }
           break;
         }
         case 'keyg':
@@ -1122,6 +1145,8 @@ class App {
       this.UI[`div_area_arrow_${areaIndex}_${dir}`].style.display = dir === targetDir ? 'block' : 'none';
     });
 
+    this.playAudio('click');
+
   }
 
   attemptUnlock(sym) {
@@ -1385,6 +1410,7 @@ class App {
     if (state.nanites >= cost) {
       state.nanites -= cost;
       state.upgrades += 1;
+      this.playAudio('click');
     }
   }
 
