@@ -96,6 +96,10 @@ dialog::backdrop {
   width: 100%;
 }
 
+#areaInfoID {
+  width: fit-content;
+}
+
 #areaArrowContainer {
   position: absolute;
   top: 0;

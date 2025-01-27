@@ -880,7 +880,7 @@ class App {
           if (state.nanites > 0) {
             this.startJiggleAnimation(fgDiv, 10, 2000);
           } else {
-            this.stopJiggleAnimation(fgDiv);
+            this.stopAnimation(fgDiv);
           }
           
           break;
@@ -889,7 +889,7 @@ class App {
           if (state.nanites > 0) {
             this.startJiggleAnimation(fgDiv, 10, 2000);
           } else {
-            this.stopJiggleAnimation(fgDiv);
+            this.stopAnimation(fgDiv);
           }
 
           break;
@@ -955,9 +955,18 @@ class App {
           this.UI.areaInfoID.textContent = '\u26f2';
           break;
         }
+        case 64: {//snail
+          this.UI.areaInfoID.textContent = '\ud83d\udc0c';
+          break;
+        }
         default: {
           this.UI.areaInfoID.textContent = String.fromCodePoint(0x1F600 + selectedIndex * 1);
         }
+      }
+      if (selectedIndex === 64) {
+        this.startHueAnimation(this.UI.areaInfoID, 1000);
+      } else {
+        this.stopAnimation(this.UI.areaInfoID);
       }
       this.UI.areaInfoLock.textContent = ['None', 'Silver', 'Gold', 'Magic'][selectedState.lock];
       const netValue = selectedState.nanites - selectedState.shield;
@@ -1470,7 +1479,26 @@ class App {
     );
   }
 
-  stopJiggleAnimation(element) {
+  startHueAnimation(element, duration) {
+    if (element.anim !== undefined) {return;}
+
+    const frames = [
+    ];
+
+    for (let h = 0; h < 360; h += 10) {
+      frames.push({filter: `hue-rotate(${h}deg)`});
+    }
+
+    element.anim = element.animate(
+      frames, {
+        duration: duration,
+        iterations: Infinity
+      }
+    );
+
+  }
+
+  stopAnimation(element) {
     if (element.anim === undefined) {return;}
     element.anim.cancel();
     element.anim = undefined;
