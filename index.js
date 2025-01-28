@@ -980,7 +980,7 @@ class App {
       this.UI.areaInfoUpgradeButton.disabled = netValue < upgradeCost;
       this.UI.areaInfoUpgradeButton.textContent = this.roundExp(upgradeCost, 3, 'ceil') + `(${selectedState.upgrades ?? ''})`;
       const selectedAreaType = this.areas[selectedIndex].type;
-      const keyDisabled = (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield <= 0) || (selectedState.lock === 1 || selectedState.lock === 2); 
+      const keyDisabled = (selectedAreaType === 'spawn') || (selectedAreaType !== 'cell' && selectedAreaType !== 'spawn') || (selectedAreaType === 'cell' && selectedState.shield <= 0) || (selectedState.lock === 1 || selectedState.lock === 2); 
       this.UI.areaArrowKey.disabled = keyDisabled; 
       if (keyDisabled) {
         this.UI.areaArrowKey.style.filter = 'opacity(0.5) grayscale(0.5)';
