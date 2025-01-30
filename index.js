@@ -9,6 +9,35 @@ http://stopsign.github.io/Nanospread/
 some details here:
 https://jayisgames.com/review/parameters.php
 
+Each tick (1/s) 
+  for each cell
+    conquered cell distributes a fraction of their current nanites to unlocked cells in the selected direction
+      the fraction is based on the global transfer upgrade
+      the total transferred remains the same no matter how many cells receive nanites
+    conquered cell generates new nanites
+      generated amount is based on the global generation upgrade and the local generation upgrade
+    unconquered cell recovers shield at a rate of a fraction of the initial shield value
+      the fraction is based on the global recovery upgrade
+    fountain converts 100% of incoming nanites into cash at average of 1 -> 1.2 rate
+      plus 1% chance of generating random letter
+    slot has a 1% chance of reward via deck method to avoid long streaks of failure
+      if not all letters have been found, a missing one will be generated otherwise
+      the incoming nanites will be converted at average of 1 -> 1800 rate
+
+Cell directions can be set with keyboard arrow keys/escape, keyboard wasd (based on 
+  keycode so other keyboard layouts should still work), and on screen buttons.
+Local upgrades can be purchased with the button or space key.
+Magic key is enabled when all the letters in NANOMETERS have been found
+  Expected number of tries is about 60. Search "coupon collectors problem" for more details
+Magic key can be toggled with *,8,z, or key button.
+Game is over when all cells are conquered
+Collection of generated particles is tracked and uncollected particles are automatically
+  collected when the game is reloaded
+Since particles are auto-collected after a period of time, particles that go 
+  off screen are not lost
+
+All sound effects generated with https://sfxr.me
+
 TODO:
 */
 
@@ -617,9 +646,7 @@ class App {
               }
             }
 
-            //const areaGenerationRate = generationRate * this.getUpgradeValue(i);
             const areaGenerationRate = generationRate * this.getUpgradeValue(i);
-            //const testGen = areaGenerationRate + state.nanites * 0.01;
 
             this.totalGeneration += areaGenerationRate;
             state.nanites += areaGenerationRate;
@@ -929,7 +956,6 @@ class App {
     } else {
       const selectedIndex = this.symbolIndexes[this.selectedArea];
       const selectedState = this.state.areas[selectedIndex];
-      //const areaName = AREAS_NAMES[selectedIndex];
       switch (selectedIndex) {
         case 0: {//final
           this.UI.areaInfoID.textContent = '\ud83c\udfc6';
@@ -1001,12 +1027,6 @@ class App {
       this.UI.areaArrowRight.style.boxShadow = selectedState.dir === 'right' ? selectedShadow : '';
       this.UI.areaArrowDown.style.boxShadow  = selectedState.dir === 'down'  ? selectedShadow : '';
     }
-
-    //this.UI.areaArrowLeft.disabled  =
-    //this.UI.areaArrowNone.disabled  =
-    //this.UI.areaArrowRight.disabled =
-    //this.UI.areaArrowDown.disabled  =
-
 
     window.requestAnimationFrame(() => this.draw());
 
