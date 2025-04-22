@@ -1,0 +1,143 @@
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Nanometers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='icon' type='image/png' href='./favicon.png'/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link href='index.css' rel='stylesheet' type='text/css'>
+  </head>
+  <body>
+    <div id='gameContainer'>
+      <div id='gridContainer' class='area'></div>
+      <div id='sidebarContainer' class='area'>
+        <div class='logoRow'>
+          <img id='logo' src='./favicon.png'> Nanometers
+        </div>
+        <div>
+          <span class='nanometersDisplay' id='nd0'>N</span>
+          <span class='nanometersDisplay' id='nd1'>A</span>
+          <span class='nanometersDisplay' id='nd2'>N</span>
+          <span class='nanometersDisplay' id='nd3'>O</span>
+          <span class='nanometersDisplay' id='nd4'>M</span>
+          <span class='nanometersDisplay' id='nd5'>E</span>
+          <span class='nanometersDisplay' id='nd6'>T</span>
+          <span class='nanometersDisplay' id='nd7'>E</span>
+          <span class='nanometersDisplay' id='nd8'>R</span>
+          <span class='nanometersDisplay' id='nd9'>S</span>
+        </div>
+        <div id='divCurrency'>
+          <img src='./silverKey.png'> <span id='spanKeyCountS'>0</span> 
+          <img src='./goldKey.png'> <span id='spanKeyCountG'>0</span> 
+          <span id='spanMagicKey'><img src='./magicKey.png'> <span id='spanKeyCountM'>&infin;</span></span>
+          &#x00a4;<span id='cash'>0</span> 
+        </div>
+        <div id='divStatsContainer'>
+          <div></div><div>&#x1f4aa;</div><div>&#x23ed;&#xfe0f; &#x1f4aa;</div><div>&#x1f4b8;</div><div></div>
+          <div>&#x2795;&#x1fab2;</div><div id='statsGenValue'></div><div id='statsGenNext'></div><div id='statsGenCost'></div><div><button id='statsGenBuy'>&#x1f4b8;</button></div>
+          <div>&#x1f69a;</div><div id='statsTransValue'></div><div id='statsTransNext'></div><div id='statsTransCost'></div><div><button id='statsTransBuy'>&#x1f4b8;</button></div>
+          <div>&#x1f691;</div><div id='statsRecValue'></div><div id='statsRecNext'></div><div id='statsRecCost'></div><div><button id='statsRecBuy'>&#x1f4b8;</button></div>
+          <div>&#x2795;&#x1fab2;&#x1f30d;</div><div id='statsGenValueGlobal'></div>
+        </div>
+        <div id='areaInfoContainer'>
+          <div class='areaInfoLabel'>&#x1faaa;</div><div id='areaInfoID'></div>
+          <div class='areaInfoLabel'>&#x1f512;</div><div id='areaInfoLock'></div>
+          <div class='areaInfoLabel'>&#x1f4aa;</div><div id='areaInfoValue'></div>
+          <div class='areaInfoLabel'>&#x2795;&#x1fab2;</div><div id='areaInfoGen'></div>
+          <div class='areaInfoLabel'>&#x1f4e5;</div><div id='areaInfoIncoming'></div>
+          <div class='areaInfoLabel'>&#x1f4e4;</div><div id='areaInfoOutgoing'></div>
+          <div class='areaInfoLabel'>&#x1f4c8;</div><div id='areaInfoNet'></div>
+          <div class='areaInfoLabel'>&#x2b06;&#xfe0f;</div><div id='areaInfoUpgrade'><button id='areaInfoUpgradeButton'></button></div>
+          <div id='areaArrowContainer'> 
+            <button class='areaArrow' id='areaArrowKey'><img src='./magicKey.png'></button>
+            <button class='areaArrow' id='areaArrowUp'>&#x2b06;&#xfe0f;</button>
+            <button class='areaArrow' id='areaArrowLeft'>&#x2b05;&#xfe0f;</button>
+            <button class='areaArrow' id='areaArrowNone'>&#x1f6ab;</button>
+            <button class='areaArrow' id='areaArrowRight'>&#x27a1;&#xfe0f;</button>
+            <button class='areaArrow' id='areaArrowDown'>&#x2b07;&#xfe0f;</button>
+          </div>
+        </div>
+        <div>
+          &#x1f308;: 
+          <input name='rdoColor' id='rdoStrength' type='radio'>&#x1f4aa;
+          <input name='rdoColor' id='rdoGen' type='radio'>&#x2795;&#x1fab2;
+          <input name='rdoColor' id='rdoNet' type='radio'>&#x1f4c8;
+          <input name='rdoColor' id='rdoUpgrades' type='radio'>&#x2b06;&#xfe0f;
+          <input name='rdoColor' id='rdoShield' type='radio'>&#x1f532;
+        </div>
+        <div>&#x1f3ae;&#x23f1;&#xfe0f;: <span id='spanPlayTime'>#:#:#:#:#:#:#:#</span></div>
+        <div id='buttonRow'>
+          <button id='btnHelp'>&#x2753;</button>
+          <button id='btnImpExp'>&#x2195;&#xfe0f;</button>
+          <button id='btnReset'>&#x1f195;</button>
+        </div>
+        <div>
+          <input id='chkSFX' type='checkbox' checked>&#x1f50a;
+          <input id='chkShake' type='checkbox' checked>&#x1fae8;
+        </div>
+        <div id='divNote'>
+          <div><a href="https://discord.gg/r-incremental-games-256804627310182401">r/incremental_games Discord</a></div>
+          <div>
+            If you enjoy this open source game, please consider
+            making a donation to your favorite charity and letting
+            me know about it on discord.
+          </div>
+          <div>
+            Please consider playing the games that inspired this one:
+            <ul>
+              <li><a href='https://stopsign.github.io/Nanospread/'><b>Nano</b>spread</a></li>
+              <li><a href='http://nekogames.jp/g2.html?gid=PRM'>Para<b>meters</b></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <dialog id='helpContainer'>
+      <div class='logoRow'><img id='logo' src='./favicon.png'> Nanometers</div>
+      &#x2620;&#xfe0f; &#x1f532; &#x27a1;&#xfe0f; &#x274e;, &#x00a4;, & &#x1f170;&#xfe0f;.
+      <br>&#x274e; &#x27a1;&#xfe0f; &#x2795; &#x1fab2; & &#x1f69a;.
+      <br>&#x2b05;&#xfe0f;&#x2b06;&#xfe0f;&#x2b07;&#xfe0f;&#x27a1;&#xfe0f; &#x27a1;&#xfe0f; &#x1f69a; &#x1f9ed;.
+      <br>&#x23cf;&#xfe0f; &#x27a1;&#xfe0f; &#x1f6ab; &#x1f69a;.
+      <br>&#x1f5dd;&#xfe0f; + &#x1f512; &#x27a1;&#xfe0f; &#x1f513;.
+      <br>&#x1f4b8; &#x27a1;&#xfe0f; &#x2b06;&#xfe0f; &#x274e;, &#x2b06;&#xfe0f; &#x1f30d;.
+      <br>&#x1f30c; &#x27a1;&#xfe0f; &#x1f4b8; &#x2b06;&#xfe0f; &#x274e;.
+      <br>&#x1f69a; &#x26f2; &#x27a1;&#xfe0f; &#x1f90f; &#x00a4;, & &#x1f170;&#xfe0f;.
+      <br>&#x1f69a; &#x1f3b0; &#x27a1;&#xfe0f; &#x1f3b2; &#x00a4;, & &#x1f170;&#xfe0f;.
+      <br>&#x1f520; &#x27a1;&#xfe0f; &#x1f9d9;&#x200d;&#x2642;&#xfe0f;, &#x2a;&#xfe0f;&#x20e3; &#x27a1;&#xfe0f; &#x2753;.
+      <br>&#x2620;&#xfe0f; &#x1f4af; &#x1f532; &#x27a1;&#xfe0f; &#x1f3c6;.
+      <div> 
+        <button id='helpClose'>&#x2705;</button>
+      </div>
+    </dialog>
+    <dialog id='imexContainer'>
+      <div>Import / Export</div>
+      <textarea id='imexText' rows='4' cols='20'></textarea>
+      <div>
+        <button id='imexImport'>Import</button>
+        <button id='imexExport'>Export</button>
+        <button id='imexClose'>Close</button>
+      </div>
+    </dialog>
+    <dialog id='resetContainer'>
+      Are you sure you want to reset?
+      <div>
+        <button id='resetYes'>Yes</button>
+        <button id='resetNo'>No</button>
+      </div>
+    </dialog>
+    <dialog id='winContainer'>
+      <div id='winTitle'>&#x1f38a;&#x1f973;&#x1f44f;</div>
+      <br>&#x1faf5; &#x1f3c6;!
+      <br>&#x1f3ae;&#x23f1;&#xfe0f; <span id='winPlayTime'></span>
+      <div>
+        <button id='winClose'>&#x2705;</button>
+      </div>
+    </dialog>
+    <script src='./levelData.js'></script>
+    <script src='./index.js'></script>
+  </body>
+</html>
